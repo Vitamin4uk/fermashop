@@ -269,19 +269,6 @@
                 <p>Завантаження продуктів...</p>
             </div>
         </section>
-
-        <section id="order-section" style="display: none;">
-            <h2>Оформлення замовлення</h2>
-            <div style="background: var(--cardBg); padding: 1.5rem; border-radius: 8px;">
-                <form id="orderForm" class="contact-form">
-                    <input type="text" id="customerFullName" placeholder="Прізвище та ім'я" required>
-                    <input type="tel" id="customerPhone" placeholder="Номер телефону" required>
-                    <input type="text" id="customerCity" placeholder="Місто доставки" required>
-                    <textarea id="orderMessage" rows="3" placeholder="Коментар до замовлення"></textarea>
-                    <button type="submit" id="submitOrderBtn" style="background-color: var(--primaryColor); color: #ffffff; padding: 1rem; font-weight: bold;">Підтвердити замовлення</button>
-                </form>
-            </div>
-        </section>
     </main>
 
     <!-- Модалка Кошика -->
@@ -291,9 +278,24 @@
             <div id="cartItemsContainer"></div>
             <div id="cartTotalSum" style="font-weight: bold; text-align: right; margin: 1rem 0; font-size: 1.2rem;"></div>
             <div class="cart-actions">
-                <button id="closeCartBtn">Закрити</button>
+                <button id="closeCartBtn">Продовжити покупки</button>
                 <button id="checkoutBtn" style="background-color: var(--primaryColor); color: white;">До оформлення</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Модалка Оформлення замовлення (Доступна тільки для зареєстрованих) -->
+    <div id="checkoutOverlay" class="overlay">
+        <div class="modal">
+            <h2>Оформлення замовлення</h2>
+            <form id="orderForm" class="contact-form">
+                <input type="text" id="customerFullName" placeholder="Прізвище та ім'я" required>
+                <input type="tel" id="customerPhone" placeholder="Номер телефону" required>
+                <input type="text" id="customerCity" placeholder="Місто доставки" required>
+                <textarea id="orderMessage" rows="3" placeholder="Коментар до замовлення"></textarea>
+                <button type="submit" id="submitOrderBtn" style="background-color: var(--primaryColor); color: #ffffff; padding: 1rem; font-weight: bold;">Підтвердити замовлення</button>
+            </form>
+            <button id="closeCheckoutBtn" style="width: 100%; margin-top: 1rem;">Скасувати</button>
         </div>
     </div>
 
@@ -368,7 +370,7 @@
         let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
 
         // Функції закриття модалок
-        const overlays = ['cartOverlay', 'authOverlay', 'cabinetOverlay', 'adminOverlay'];
+        const overlays = ['cartOverlay', 'authOverlay', 'cabinetOverlay', 'adminOverlay', 'checkoutOverlay'];
         const closeAllModals = () => overlays.forEach(id => document.getElementById(id).classList.remove('active'));
 
         // Відстеження авторизації
@@ -377,18 +379,15 @@
             const authBtn = document.getElementById('authBtn');
             const adminBtn = document.getElementById('adminBtn');
             const cabinetBtn = document.getElementById('cabinetBtn');
-            const orderSection = document.getElementById('order-section');
 
             if (user) {
                 authBtn.textContent = 'Вийти';
                 cabinetBtn.style.display = 'block';
                 if (user.email === ADMIN_EMAIL) adminBtn.style.display = 'block';
-                orderSection.style.display = shoppingCart.length > 0 ? 'block' : 'none';
             } else {
                 authBtn.textContent = 'Увійти';
                 adminBtn.style.display = 'none';
                 cabinetBtn.style.display = 'none';
-                orderSection.style.display = 'none';
             }
             renderProducts();
         });
@@ -512,7 +511,7 @@
             `).join('');
         }
 
-        // --- ОБРОБКА КЛІКІВ (Делегування подій з .closest()) ---
+        // --- ОБРОБКА КЛІКІВ (Делегування подій) ---
         document.body.addEventListener('click', async (e) => {
             const target = e.target;
 
@@ -525,7 +524,6 @@
                 if (exist) exist.quantity++;
                 else shoppingCart.push({ ...prod, quantity: 1 });
                 saveCart();
-                if (currentUser) document.getElementById('order-section').style.display = 'block';
                 return;
             }
 
@@ -535,7 +533,6 @@
                 shoppingCart = shoppingCart.filter(x => x.id !== removeBtn.dataset.id);
                 saveCart();
                 renderCartModal();
-                if (shoppingCart.length === 0) document.getElementById('order-section').style.display = 'none';
                 return;
             }
 
@@ -575,17 +572,26 @@
             if (['closeCartBtn', 'closeAuthBtn', 'closeCabinetBtn', 'closeAdminBtn', 'closeCheckoutBtn'].includes(target.id)) {
                 closeAllModals();
             }
+
+            // Перехід до оформлення
             if (target.id === 'checkoutBtn') {
                 closeAllModals();
-                if (!currentUser) document.getElementById('authOverlay').classList.add('active');
-                else document.getElementById('order-section').scrollIntoView();
+                if (!currentUser) {
+                    alert('Щоб оформити замовлення, будь ласка, увійдіть у свій акаунт.');
+                    document.getElementById('authOverlay').classList.add('active');
+                } else if (shoppingCart.length === 0) {
+                    alert('Кошик порожній.');
+                } else {
+                    document.getElementById('checkoutOverlay').classList.add('active');
+                    document.getElementById('customerEmail').value = currentUser.email;
+                }
             }
             
             // Клік по фону оверлея
             if (target.classList.contains('overlay')) target.classList.remove('active');
         });
 
-        // Додавання продукту
+        // Додавання продукту (Адмін)
         document.getElementById('addProductForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
@@ -601,7 +607,7 @@
             e.target.reset();
         });
 
-        // Авторизація
+        // Авторизація (Вхід/Реєстрація)
         let isLogin = true;
         document.getElementById('toggleAuthModeBtn').onclick = () => {
             isLogin = !isLogin;
@@ -621,7 +627,7 @@
             } catch (err) { alert("Помилка авторизації. Перевірте дані."); }
         });
 
-        // Оформлення замовлення
+        // Оформлення замовлення (Submit)
         document.getElementById('orderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (shoppingCart.length === 0) return;
@@ -643,9 +649,10 @@
             };
 
             try {
+                // 1. Зберігаємо в Firebase
                 await addDoc(collection(db, 'orders'), customerData);
 
-                // Telegram
+                // 2. Відправляємо в Telegram
                 const token = '8702351008:AAEes2QuyIShUtv3ScZrX5YZ5PfQLm18o6A';
                 const chat = '372259859';
                 const telegramMsg = `🔔 НОВЕ ЗАМОВЛЕННЯ!\n👤 Клієнт: ${customerData.customerFullName}\n📞 Тел: ${customerData.customerPhone}\n🏙 Місто: ${customerData.customerCity}\n💰 Сума: ${total} грн\n\nСклад:\n${shoppingCart.map(i => `• ${i.name} (${i.quantity} ${i.unit})`).join('\n')}`;
@@ -659,27 +666,26 @@
                 shoppingCart = [];
                 saveCart();
                 e.target.reset();
-                document.getElementById('order-section').style.display = 'none';
+                closeAllModals();
                 
-                btn.style.background = "#4caf50";
-                btn.textContent = "Замовлення прийнято!";
-                setTimeout(() => {
-                    btn.style.background = "var(--primaryColor)";
-                    btn.textContent = "Підтвердити замовлення";
-                    btn.disabled = false;
-                }, 3000);
+                alert("Дякуємо! Ваше замовлення прийнято.");
+                btn.disabled = false;
+                btn.textContent = "Підтвердити замовлення";
 
             } catch (err) {
+                console.error(err);
                 btn.disabled = false;
                 btn.textContent = "Помилка! Спробуйте ще раз";
             }
         });
 
+        // Перемикач теми
         document.getElementById('themeToggleBtn').onclick = () => {
             const html = document.documentElement;
             html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
         };
 
+        // Запуск
         loadProducts();
         updateCartUI();
     </script>
