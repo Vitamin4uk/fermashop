@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Локальна Ферма | Свіжа продукція</title>
+    <style>
+        /* Базові змінні для світлої та темної тем */
+        :root {
+            --bgColor: #ffffff;
+            --textColor: #333333;
+            --primaryColor: #2e7d32;
+            --cardBg: #f5f5f5;
+            --borderColor: #e0e0e0;
+        }
+
+        [data-theme="dark"] {
+            --bgColor: #121212;
+            --textColor: #e0e0e0;
+            --primaryColor: #81c784;
+            --cardBg: #1e1e1e;
+            --borderColor: #333333;
+        }
+
+        /* Плавна прокрутка та відступ для закріпленої шапки */
+        html {
+            scroll-padding-top: 100px; 
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bgColor);
+            color: var(--textColor);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--borderColor);
+            position: sticky;
+            top: 0;
+            background-color: var(--bgColor);
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primaryColor);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--borderColor);
+            background-color: var(--cardBg);
+            color: var(--textColor);
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        #cartBtn {
+            font-weight: bold;
+            border-color: var(--primaryColor);
+        }
+
+        main {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        /* Галерея та картки товарів */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .product-card {
+            background-color: var(--cardBg);
+            border: 1px solid var(--borderColor);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.3s ease, transform 0.2s ease;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .gallery-item {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            cursor: zoom-in;
+        }
+
+        .product-info {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .product-info h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+
+        .price {
+            font-weight: bold;
+            color: var(--primaryColor);
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .buyBtn {
+            margin-top: auto;
+            background-color: var(--primaryColor);
+            color: #ffffff;
+            border: none;
+            padding: 0.75rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        /* Стиль для кнопки неавторизованого користувача */
+        .auth-required-btn {
+            margin-top: auto;
+            background-color: var(--borderColor);
+            color: var(--textColor);
+            border: none;
+            padding: 0.75rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .auth-required-btn:hover {
+            opacity: 0.8;
+        }
+
+        /* Модальні вікна */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .overlay.active {
+            display: flex;
+        }
+
+        .lightbox-image {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .cart-modal {
+            background-color: var(--bgColor);
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--borderColor);
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--borderColor);
+        }
+
+        .cart-item-title {
+            flex-grow: 1;
+        }
+
+        .cart-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cart-controls button {
+            padding: 0.2rem 0.6rem;
+        }
+
+        .remove-btn {
+            background-color: #ffebee;
+            color: #c62828;
+            border-color: #ffcdd2;
+            margin-left: 10px;
+        }
+
+        .cart-total {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: right;
+            margin-top: 1rem;
+            color: var(--primaryColor);
+        }
+
+        .cart-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Форма та підвал */
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 500px;
+        }
+
+        input, textarea {
+            padding: 0.75rem;
+            border: 1px solid var(--borderColor);
+            background-color: var(--cardBg);
+            color: var(--textColor);
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        footer {
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid var(--borderColor);
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: var(--textColor);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">Локальна Ферма</div>
+        <div class="header-controls">
+            <!-- Кнопка адміна з'явиться тільки якщо увійти під ADMIN_EMAIL -->
+            <button id="adminBtn" style="display: none; border-color: #f57c00; color: #f57c00;">Адмін-панель</button>
+            <button id="authBtn">Увійти</button>
+            <button id="cartBtn">Кошик (0)</button>
+            <button id="themeToggleBtn">Темна тема</button>
+        </div>
+    </header>
+
+    <main>
+        <section id="about">
+            <h2>Про нас</h2>
+            <p>Свіжі домашні бройлери та курячі яйця. Пряма доставка з нашої ферми до вашого столу. Суворий контроль якості та дотримання норм біобезпеки.</p>
+        </section>
+
+        <section id="products">
+            <h2>Наша продукція</h2>
+            <div id="productsGrid" class="gallery-grid">
+                <p>Завантаження актуальних пропозицій...</p>
+            </div>
+        </section>
+
+        <section id="contact">
+            <h2>Оформити замовлення</h2>
+            <form id="orderForm" class="contact-form">
+                <input type="text" id="customerFullName" name="name" placeholder="Прізвище та ім'я" required>
+                <input type="tel" id="customerPhone" name="phone" placeholder="Номер телефону" required>
+                <input type="email" id="customerEmail" name="email" placeholder="Електронна пошта" required>
+                <input type="text" id="customerCity" name="city" placeholder="Місто доставки" required>
+                <textarea id="orderMessage" name="message" rows="3" placeholder="Коментар до замовлення (необов'язково)"></textarea>
+                <button type="submit" id="submitOrderBtn" style="background-color: var(--primaryColor); color: #ffffff;">Відправити замовлення</button>
+            </form>
+        </section>
+    </main>
+
+    <!-- Модальне вікно для галереї товарів (Lightbox) -->
+    <div id="lightboxOverlay" class="overlay">
+        <img id="lightboxImg" class="lightbox-image" src="" alt="Збільшене зображення">
+    </div>
+
+    <!-- Модальне вікно кошика -->
+    <div id="cartOverlay" class="overlay">
+        <div class="cart-modal"> 
+            <h2>Ваше замовлення</h2>
+            <div id="cartItemsContainer">
+                <p>Кошик порожній.</p>
+            </div>
+            <div class="cart-total" id="cartTotalSum">Разом: 0 грн</div>
+            <div class="cart-actions">
+                <button id="closeCartBtn">Продовжити покупки</button>
+                <button id="goToCheckoutBtn" style="background-color: var(--primaryColor); color: white;">Оформити</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальне вікно Авторизації/Реєстрації -->
+    <div id="authOverlay" class="overlay">
+        <div class="cart-modal"> 
+            <h2 id="authTitle">Вхід у кабінет</h2>
+            <form id="authForm" class="contact-form">
+                <input type="email" id="authUserEmail" placeholder="Ваш Email" required>
+                <input type="password" id="authUserPassword" placeholder="Пароль (мінімум 6 символів)" required minlength="6">
+                <button type="submit" id="authSubmitBtn" style="background-color: var(--primaryColor); color: #ffffff;">Увійти</button>
+                <p style="text-align: center; margin-top: 1rem; cursor: pointer; color: var(--primaryColor); text-decoration: underline;" id="toggleAuthModeBtn">
+                    Немає акаунту? Зареєструватися
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальне вікно Адмін-панелі -->
+    <div id="adminOverlay" class="overlay">
+        <div class="cart-modal" style="max-width: 600px;">
+            <h2>Адмін-панель</h2>
+            
+            <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--borderColor);">
+                <h3 style="margin-top: 0;">Додати новий товар</h3>
+                <form id="addProductForm" class="contact-form">
+                    <input type="text" id="addProductName" placeholder="Назва (напр. Тушка бройлера)" required>
+                    <input type="number" id="addProductPrice" placeholder="Ціна (в грн)" required min="1">
+                    <input type="text" id="addProductUnit" placeholder="Одиниця виміру (напр. кг, десяток)" required>
+                    <input type="url" id="addProductImage" placeholder="URL зображення (необов'язково)">
+                    <button type="submit" style="background-color: #f57c00; color: #ffffff;">Додати товар до бази</button>
+                </form>
+            </div>
+
+            <div>
+                <h3 style="margin-top: 0;">Управління товарами</h3>
+                <div id="adminProductsList">
+                    <p>Завантаження...</p>
+                </div>
+            </div>
+
+            <div class="cart-actions">
+                <button id="closeAdminBtn">Закрити панель</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Локальна Ферма. Всі права захищено.</p>
+        <p>Офіційний постачальник крафтової продукції.</p>
+    </footer>
+
+    <!-- Скрипт 1: Логіка UI (Теми та Модалки) -->
+    <script>
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const htmlElement = document.documentElement;
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', newTheme);
+            themeToggleBtn.textContent = newTheme === 'light' ? 'Темна тема' : 'Світла тема';
+        });
+
+        const lightboxOverlay = document.getElementById('lightboxOverlay');
+        const cartOverlay = document.getElementById('cartOverlay');
+        const cartBtn = document.getElementById('cartBtn');
+
+        // Відкриття кошика
+        cartBtn.addEventListener('click', () => cartOverlay.classList.add('active'));
+        
+        // Закриття кошика
+        document.getElementById('closeCartBtn').addEventListener('click', () => cartOverlay.classList.remove('active'));
+        
+        // Кнопка Оформити (закриває кошик і плавно скролить до форми)
+        document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
+            cartOverlay.classList.remove('active');
+            document.getElementById('contact').scrollIntoView();
+        });
+
+        // Закриття модалок по кліку на темний фон
+        [lightboxOverlay, cartOverlay, document.getElementById('authOverlay'), document.getElementById('adminOverlay')].forEach(overlay => {
+            if (overlay) {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) overlay.classList.remove('active');
+                });
+            }
+        });
+    </script>
+
+    <!-- Скрипт 2: Firebase, Автентифікація, Кошик та Telegram-бот -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // ==========================================
+        // ВКАЖІТЬ ТУТ ВАШ EMAIL АДМІНІСТРАТОРА!
+        // ==========================================
+        const ADMIN_EMAIL = 'mostovyi.zsu@gmail.com'; 
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdCvqIiSymeCDJFsEmP2qxce-tO5dhmVQ",
+            authDomain: "farmshop-d52e3.firebaseapp.com",
+            projectId: "farmshop-d52e3",
+            storageBucket: "farmshop-d52e3.firebasestorage.app",
+            messagingSenderId: "292354558289",
+            appId: "1:292354558289:web:d9a7fe2ec364cb3e71ab70"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app); 
+
+        let currentUser = null; 
+        let globalProducts = [];
+        let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
+
+        const productsGrid = document.getElementById('productsGrid');
+        const cartBtnUI = document.getElementById('cartBtn');
+        const cartItemsContainer = document.getElementById('cartItemsContainer');
+        const cartTotalSum = document.getElementById('cartTotalSum');
+        const lightboxImgUI = document.getElementById('lightboxImg');
+        const lightboxOverlayUI = document.getElementById('lightboxOverlay');
+        const authOverlay = document.getElementById('authOverlay');
+        const authBtnUI = document.getElementById('authBtn');
+        const adminBtnUI = document.getElementById('adminBtn');
+
+        // Відстежуємо стан користувача
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                authBtnUI.textContent = 'Вийти з кабінету';
+                authOverlay.classList.remove('active');
+                
+                // Якщо увійшов адмін - показуємо кнопку "Адмін-панель"
+                if (user.email === ADMIN_EMAIL) {
+                    adminBtnUI.style.display = 'block';
+                } else {
+                    adminBtnUI.style.display = 'none';
+                }
+            } else {
+                authBtnUI.textContent = 'Увійти';
+                adminBtnUI.style.display = 'none';
+            }
+            if (globalProducts.length > 0) renderProducts(globalProducts);
+        });
+
+        // --- ЛОГІКА РЕЄСТРАЦІЇ ТА АВТОРИЗАЦІЇ ---
+        let isLoginMode = true;
+        const authForm = document.getElementById('authForm');
+        const authTitle = document.getElementById('authTitle');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const toggleAuthModeBtn = document.getElementById('toggleAuthModeBtn');
+
+        authBtnUI.addEventListener('click', () => {
+            if (currentUser) {
+                signOut(auth).then(() => {
+                    shoppingCart = []; 
+                    saveAndRenderCart();
+                    alert('Ви успішно вийшли з акаунту.');
+                });
+            } else {
+                authOverlay.classList.add('active');
+            }
+        });
+
+        toggleAuthModeBtn.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            if (isLoginMode) {
+                authTitle.textContent = 'Вхід у кабінет';
+                authSubmitBtn.textContent = 'Увійти';
+                toggleAuthModeBtn.textContent = 'Немає акаунту? Зареєструватися';
+            } else {
+                authTitle.textContent = 'Реєстрація';
+                authSubmitBtn.textContent = 'Створити акаунт';
+                toggleAuthModeBtn.textContent = 'Вже є акаунт? Увійти';
+            }
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('authUserEmail').value;
+            const password = document.getElementById('authUserPassword').value;
+
+            try {
+                authSubmitBtn.disabled = true;
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    alert('Успішний вхід!');
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    alert('Акаунт успішно створено! Тепер ви можете робити покупки.');
+                }
+                authForm.reset();
+            } catch (error) {
+                console.error("Помилка авторизації:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    alert('Цей Email вже зареєстровано.');
+                } else if (error.code === 'auth/invalid-credential') {
+                    alert('Невірний Email або пароль.');
+                } else {
+                    alert('Сталася помилка. Перевірте введені дані.');
+                }
+            } finally {
+                authSubmitBtn.disabled = false;
+            }
+        });
+
+        // --- ЛОГІКА КОШИКА ТА ТОВАРІВ ---
+        function updateCartBadge() {
+            const totalItems = shoppingCart.reduce((sum, item) => sum + item.quantity, 0);
+            cartBtnUI.textContent = `Кошик (${totalItems})`;
+        }
+
+        function renderProducts(products) {
+            productsGrid.innerHTML = '';
+            if (products.length === 0) {
+                productsGrid.innerHTML = '<p>Наразі товарів немає в наявності.</p>';
+                return;
+            }
+
+            products.forEach(product => {
+                const imageUrl = product.imageUrl || 'https://via.placeholder.com/400x300?text=Фото+в+обробці';
+                
+                let buttonHTML = '';
+                if (currentUser) {
+                    buttonHTML = `<button class="buyBtn" data-id="${product.id}">Додати</button>`;
+                } else {
+                    buttonHTML = `<button class="auth-required-btn" onclick="document.getElementById('authOverlay').classList.add('active')">Увійти щоб купити</button>`;
+                }
+
+                const cardHTML = `
+                    <div class="product-card">
+                        <img src="${imageUrl}" alt="${product.name}" class="gallery-item">
+                        <div class="product-info">
+                            <h3>${product.name}</h3>
+                            <p class="price">${product.price} грн / ${product.unit}</p>
+                            ${buttonHTML}
+                        </div>
+                    </div>
+                `;
+                productsGrid.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }
+
+        async function fetchFarmProducts() {
+            const productsCollection = collection(db, 'products');
+            try {
+                const querySnapshot = await getDocs(productsCollection);
+                globalProducts = [];
+                querySnapshot.forEach((doc) => {
+                    globalProducts.push({ id: doc.id, ...doc.data() });
+                });
+                renderProducts(globalProducts);
+            } catch (error) {
+                console.error("Помилка бази даних:", error);
+                productsGrid.innerHTML = '<p>Не вдалося завантажити товари. Перевірте з\'єднання.</p>';
+            }
+        }
+
+        function addToCart(productId) {
+            if (!currentUser) return; 
+            
+            const product = globalProducts.find(p => p.id === productId);
+            if (!product) return;
+            const existingItem = shoppingCart.find(item => item.id === productId);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                shoppingCart.push({ ...product, quantity: 1 });
+            }
+            saveAndRenderCart();
+        }
+
+        function changeQuantity(productId, delta) {
+            const itemIndex = shoppingCart.findIndex(item => item.id === productId);
+            if (itemIndex > -1) {
+                shoppingCart[itemIndex].quantity += delta;
+                if (shoppingCart[itemIndex].quantity <= 0) {
+                    shoppingCart.splice(itemIndex, 1);
+                }
+                saveAndRenderCart();
+            }
+        }
+
+        function removeFromCart(productId) {
+            shoppingCart = shoppingCart.filter(item => item.id !== productId);
+            saveAndRenderCart();
+        }
+
+        function saveAndRenderCart() {
+            localStorage.setItem('farmCart', JSON.stringify(shoppingCart));
+            updateCartBadge();
+            renderCartModal();
+        }
+
+        function renderCartModal() {
+            if (shoppingCart.length === 0) {
+                cartItemsContainer.innerHTML = '<p>Кошик порожній.</p>';
+                cartTotalSum.textContent = 'Разом: 0 грн';
+                return;
+            }
+            let html = '';
+            let total = 0;
+            shoppingCart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                html += `
+                    <div class="cart-item">
+                        <div class="cart-item-title">
+                            <strong>${item.name}</strong><br>
+                            ${item.price} грн / ${item.unit}
+                        </div>
+                        <div class="cart-controls">
+                            <button class="qty-btn" data-id="${item.id}" data-action="minus">-</button>
+                            <span>${item.quantity}</span>
+                            <button class="qty-btn" data-id="${item.id}" data-action="plus">+</button>
+                            <button class="remove-btn" data-id="${item.id}" title="Видалити товар">✖</button>
+                        </div>
+                    </div>
+                `;
+            });
+            cartItemsContainer.innerHTML = html;
+            cartTotalSum.textContent = `Разом: ${total} грн`;
+        }
+
+        // Глобальний обробник подій (делегування)
+        document.body.addEventListener('click', async (event) => {
+            // Клік по кнопці "Додати"
+            if (event.target.classList.contains('buyBtn')) {
+                addToCart(event.target.getAttribute('data-id'));
+            }
+            // Клік по кнопкам +/- в кошику
+            if (event.target.classList.contains('qty-btn')) {
+                const action = event.target.getAttribute('data-action');
+                changeQuantity(event.target.getAttribute('data-id'), action === 'plus' ? 1 : -1);
+            }
+            // Видалити товар з кошика повністю
+            if (event.target.classList.contains('remove-btn')) {
+                removeFromCart(event.target.getAttribute('data-id'));
+            }
+            // Відкрити фото товару
+            if (event.target.classList.contains('gallery-item')) {
+                lightboxImgUI.src = event.target.src;
+                lightboxOverlayUI.classList.add('active');
+            }
+
+            // --- ОБРОБНИКИ ДЛЯ АДМІН-ПАНЕЛІ ---
+            if (event.target.classList.contains('edit-price-btn')) {
+                const id = event.target.getAttribute('data-id');
+                const newPrice = prompt('Введіть нову ціну (грн):');
+                if (newPrice && !isNaN(newPrice) && Number(newPrice) > 0) {
+                    try {
+                        await updateDoc(doc(db, 'products', id), { price: Number(newPrice) });
+                        alert('Ціну успішно оновлено!');
+                        await fetchFarmProducts();
+                        renderAdminProductsList();
+                    } catch (err) {
+                        console.error(err);
+                        alert('Помилка при оновленні ціни. Перевірте дозволи Firestore.');
+                    }
+                }
+            }
+            if (event.target.classList.contains('remove-product-btn')) {
+                const id = event.target.getAttribute('data-id');
+                if (confirm('Ви впевнені, що хочете видалити цей товар назавжди?')) {
+                    try {
+                        await deleteDoc(doc(db, 'products', id));
+                        alert('Товар видалено!');
+                        await fetchFarmProducts();
+                        renderAdminProductsList();
+                    } catch (err) {
+                        console.error(err);
+                        alert('Помилка при видаленні товару. Перевірте дозволи Firestore.');
+                    }
+                }
+            }
+        });
+
+        // --- ЛОГІКА АДМІН-ПАНЕЛІ ---
+        const adminOverlay = document.getElementById('adminOverlay');
+        const adminProductsList = document.getElementById('adminProductsList');
+
+        adminBtnUI.addEventListener('click', () => {
+            renderAdminProductsList();
+            adminOverlay.classList.add('active');
+        });
+
+        document.getElementById('closeAdminBtn').addEventListener('click', () => {
+            adminOverlay.classList.remove('active');
+        });
+
+        function renderAdminProductsList() {
+            if (globalProducts.length === 0) {
+                adminProductsList.innerHTML = '<p>Немає товарів у базі.</p>';
+                return;
+            }
+            let html = '';
+            globalProducts.forEach(p => {
+                html += `
+                    <div class="cart-item">
+                        <div class="cart-item-title">
+                            <strong>${p.name}</strong><br>
+                            ${p.price} грн / ${p.unit}
+                        </div>
+                        <div class="cart-controls">
+                            <button class="edit-price-btn" data-id="${p.id}" style="background-color: #e3f2fd; color: #1976d2; border-color: #bbdefb; padding: 0.4rem;">✎ Змінити ціну</button>
+                            <button class="remove-product-btn" data-id="${p.id}" style="background-color: #ffebee; color: #c62828; border-color: #ffcdd2; padding: 0.4rem; margin-left: 0.5rem;">🗑 Видалити</button>
+                        </div>
+                    </div>
+                `;
+            });
+            adminProductsList.innerHTML = html;
+        }
+
+        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Додавання...';
+
+            const name = document.getElementById('addProductName').value;
+            const price = Number(document.getElementById('addProductPrice').value);
+            const unit = document.getElementById('addProductUnit').value;
+            const imageUrl = document.getElementById('addProductImage').value || '';
+
+            try {
+                await addDoc(collection(db, 'products'), { name, price, unit, imageUrl });
+                alert('Новий товар успішно додано!');
+                e.target.reset();
+                await fetchFarmProducts(); 
+                renderAdminProductsList(); 
+            } catch (err) {
+                console.error(err);
+                alert('Виникла помилка при додаванні товару. Перевірте дозволи (Rules) у Firestore.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Додати товар до бази';
+            }
+        });
+
+        // --- ІНТЕГРАЦІЯ ФОРМИ З TELEGRAM ТА FIREBASE ---
+        const orderForm = document.getElementById('orderForm');
+        const submitOrderBtn = document.getElementById('submitOrderBtn');
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+        
+        orderForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            if (!currentUser) {
+                alert('Будь ласка, увійдіть у систему, щоб зробити замовлення.');
+                return;
+            }
+            
+            if (shoppingCart.length === 0) {
+                alert('Ваш кошик порожній. Додайте товари для замовлення.');
+                return;
+            }
+
+            // Отримуємо та очищаємо нові дані з форми
+            const customerFullName = escapeHTML(document.getElementById('customerFullName').value);
+            const customerPhone = escapeHTML(document.getElementById('customerPhone').value); 
+            const customerEmail = escapeHTML(document.getElementById('customerEmail').value);
+            const customerCity = escapeHTML(document.getElementById('customerCity').value);
+            const orderMessage = escapeHTML(document.getElementById('orderMessage').value);
+
+            let orderDetailsText = shoppingCart.map(item => 
+                `- ${item.name}: ${item.quantity} ${item.unit} (${item.price * item.quantity} грн)`
+            ).join('\n');
+            
+            const totalSum = shoppingCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            const TELEGRAM_BOT_TOKEN = '8702351008:AAEes2QuyIShUtv3ScZrX5YZ5PfQLm18o6A'; 
+            const TELEGRAM_CHAT_ID = '372259859'; 
+
+            // Оновлений формат повідомлення
+            const messageText = `
+🔔 <b>НОВЕ ЗАМОВЛЕННЯ!</b>
+
+👤 <b>Клієнт:</b> ${customerFullName}
+📞 <b>Телефон:</b> ${customerPhone}
+📧 <b>Email:</b> ${customerEmail}
+🏙 <b>Місто:</b> ${customerCity}
+💬 <b>Коментар:</b> ${orderMessage || 'Немає'}
+
+🛒 <b>Товари:</b>
+${orderDetailsText}
+
+💰 <b>До сплати:</b> ${totalSum} грн
+            `;
+
+            const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+            try {
+                submitOrderBtn.textContent = 'Відправка...';
+                submitOrderBtn.disabled = true;
+
+                // 1. Зберігаємо замовлення у базі Firebase (створюється колекція 'orders')
+                await addDoc(collection(db, 'orders'), {
+                    customerFullName: customerFullName,
+                    customerPhone: customerPhone,
+                    customerEmail: customerEmail,
+                    customerCity: customerCity,
+                    orderMessage: orderMessage,
+                    userId: currentUser.uid, 
+                    items: shoppingCart,
+                    totalSum: totalSum,
+                    status: 'нове', 
+                    createdAt: new Date().toISOString()
+                });
+
+                // 2. Відправляємо повідомлення в Telegram
+                const response = await fetch(telegramUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: messageText,
+                        parse_mode: 'HTML'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Дякуємо, ${customerFullName}! Ваше замовлення успішно збережено та відправлено в обробку.`);
+                    shoppingCart = [];
+                    saveAndRenderCart();
+                    orderForm.reset();
+                } else {
+                    console.error('Помилка Telegram API:', data);
+                    alert(`Замовлення збережено в базі, але сталася помилка відправки в Telegram. Код: ${data.error_code}`);
+                }
+            } catch (error) {
+                console.error("Помилка:", error);
+                alert('Виникла помилка. Перевірте інтернет-з\'єднання або дозволи Firebase.');
+            } finally {
+                submitOrderBtn.textContent = 'Відправити замовлення';
+                submitOrderBtn.disabled = false;
+            }
+        });
+
+        // Ініціалізація сайту при старті
+        updateCartBadge();
+        renderCartModal();
+        fetchFarmProducts();
+    </script>
+</body>
+</html>
