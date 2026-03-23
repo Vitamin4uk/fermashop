@@ -334,7 +334,7 @@
                 <input type="number" id="addProductPrice" placeholder="Ціна (грн)" required>
                 <input type="text" id="addProductUnit" placeholder="Одиниця (кг, шт, дес)" required>
                 <input type="url" id="addProductImage" placeholder="URL зображення">
-                <button type="submit" style="background-color: var(--accentColor); color: white;">Опублікувати</button>
+                <button type="submit" style="background-color: #f57c00; color: white;">Опублікувати</button>
             </form>
             <h3>Список товарів</h3>
             <div id="adminProductsList"></div>
@@ -479,7 +479,7 @@
                 container.innerHTML = orders.map(order => `
                     <div class="order-history-card">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px">
-                            <strong>Замовлення #${order.id.slice(-6)}</strong>
+                            <strong>Замовлення №${order.orderNumber || '---'}</strong>
                             <small>${new Date(order.createdAt).toLocaleDateString()}</small>
                         </div>
                         <details class="order-details">
@@ -511,7 +511,7 @@
             `).join('');
         }
 
-        // --- ОБРОБКА КЛІКІВ (Делегування подій) ---
+        // --- ОБРОБКА КЛІКІВ ---
         document.body.addEventListener('click', async (e) => {
             const target = e.target;
 
@@ -583,7 +583,9 @@
                     alert('Кошик порожній.');
                 } else {
                     document.getElementById('checkoutOverlay').classList.add('active');
-                    document.getElementById('customerEmail').value = currentUser.email;
+                    if (currentUser.email) {
+                        const emailInput = document.getElementById('authUserEmail'); // Це для логіну, в чекауті нема емейла окремо у формі за завданням, але currentUser.email доступний
+                    }
                 }
             }
             
@@ -607,7 +609,7 @@
             e.target.reset();
         });
 
-        // Авторизація (Вхід/Реєстрація)
+        // Авторизація
         let isLogin = true;
         document.getElementById('toggleAuthModeBtn').onclick = () => {
             isLogin = !isLogin;
@@ -627,7 +629,7 @@
             } catch (err) { alert("Помилка авторизації. Перевірте дані."); }
         });
 
-        // Оформлення замовлення (Submit)
+        // Оформлення замовлення (Submit з нумерацією)
         document.getElementById('orderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (shoppingCart.length === 0) return;
@@ -636,26 +638,33 @@
             btn.disabled = true;
             btn.textContent = "Обробка...";
 
-            const total = shoppingCart.reduce((acc, i) => acc + i.price * i.quantity, 0);
-            const customerData = {
-                customerFullName: document.getElementById('customerFullName').value,
-                customerPhone: document.getElementById('customerPhone').value,
-                customerCity: document.getElementById('customerCity').value,
-                orderMessage: document.getElementById('orderMessage').value,
-                userId: currentUser.uid,
-                items: shoppingCart,
-                totalSum: total,
-                createdAt: new Date().toISOString()
-            };
-
             try {
+                // ГЕНЕРАЦІЯ НОМЕРА ЗАМОВЛЕННЯ
+                // Отримуємо всі замовлення, щоб дізнатися кількість
+                const ordersSnap = await getDocs(collection(db, 'orders'));
+                const nextNumber = ordersSnap.size + 1;
+                const formattedNumber = nextNumber.toString().padStart(6, '0');
+
+                const total = shoppingCart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+                const customerData = {
+                    orderNumber: formattedNumber,
+                    customerFullName: document.getElementById('customerFullName').value,
+                    customerPhone: document.getElementById('customerPhone').value,
+                    customerCity: document.getElementById('customerCity').value,
+                    orderMessage: document.getElementById('orderMessage').value,
+                    userId: currentUser.uid,
+                    items: shoppingCart,
+                    totalSum: total,
+                    createdAt: new Date().toISOString()
+                };
+
                 // 1. Зберігаємо в Firebase
                 await addDoc(collection(db, 'orders'), customerData);
 
                 // 2. Відправляємо в Telegram
                 const token = '8702351008:AAEes2QuyIShUtv3ScZrX5YZ5PfQLm18o6A';
                 const chat = '372259859';
-                const telegramMsg = `🔔 НОВЕ ЗАМОВЛЕННЯ!\n👤 Клієнт: ${customerData.customerFullName}\n📞 Тел: ${customerData.customerPhone}\n🏙 Місто: ${customerData.customerCity}\n💰 Сума: ${total} грн\n\nСклад:\n${shoppingCart.map(i => `• ${i.name} (${i.quantity} ${i.unit})`).join('\n')}`;
+                const telegramMsg = `🔔 НОВЕ ЗАМОВЛЕННЯ №${formattedNumber}!\n👤 Клієнт: ${customerData.customerFullName}\n📞 Тел: ${customerData.customerPhone}\n🏙 Місто: ${customerData.customerCity}\n💰 Сума: ${total} грн\n\nСклад:\n${shoppingCart.map(i => `• ${i.name} (${i.quantity} ${i.unit})`).join('\n')}`;
                 
                 await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                     method: 'POST',
@@ -668,7 +677,7 @@
                 e.target.reset();
                 closeAllModals();
                 
-                alert("Дякуємо! Ваше замовлення прийнято.");
+                alert(`Дякуємо! Ваше замовлення №${formattedNumber} прийнято.`);
                 btn.disabled = false;
                 btn.textContent = "Підтвердити замовлення";
 
