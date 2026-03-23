@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Локальна Ферма | Свіжа продукція</title>
+    <!-- Додаємо бібліотеку для генерації PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* Базові змінні для світлої та темної тем */
         :root {
@@ -58,6 +60,8 @@
         .header-controls {
             display: flex;
             gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         button {
@@ -283,7 +287,9 @@
         <div class="header-controls">
             <!-- Кнопка адміна з'явиться тільки якщо увійти під ADMIN_EMAIL -->
             <button id="adminBtn" style="display: none; border-color: #f57c00; color: #f57c00;">Адмін-панель</button>
+            <button id="cabinetBtn" style="display: none; border-color: var(--primaryColor); color: var(--primaryColor);">Кабінет</button>
             <button id="authBtn">Увійти</button>
+            <button id="logoutBtn" style="display: none;">Вийти</button>
             <button id="cartBtn">Кошик (0)</button>
             <button id="themeToggleBtn">Темна тема</button>
         </div>
@@ -301,8 +307,6 @@
                 <p>Завантаження актуальних пропозицій...</p>
             </div>
         </section>
-        
-        <!-- Секцію з формою замовлення перенесено у модальне вікно нижче -->
     </main>
 
     <!-- Модальне вікно для галереї товарів (Lightbox) -->
@@ -312,7 +316,7 @@
 
     <!-- Модальне вікно кошика -->
     <div id="cartOverlay" class="overlay">
-        <div class="cart-modal"> 
+        <div class="cart-modal" onclick="event.stopPropagation()"> 
             <h2>Ваше замовлення</h2>
             <div id="cartItemsContainer">
                 <p>Кошик порожній.</p>
@@ -327,7 +331,7 @@
 
     <!-- Модальне вікно Оформлення замовлення (ТІЛЬКИ ДЛЯ ЗАРЕЄСТРОВАНИХ) -->
     <div id="checkoutOverlay" class="overlay">
-        <div class="cart-modal"> 
+        <div class="cart-modal" onclick="event.stopPropagation()"> 
             <h2>Деталі доставки</h2>
             <form id="orderForm" class="contact-form">
                 <input type="text" id="customerFullName" name="name" placeholder="Прізвище та ім'я" required>
@@ -345,7 +349,7 @@
 
     <!-- Модальне вікно Авторизації/Реєстрації -->
     <div id="authOverlay" class="overlay">
-        <div class="cart-modal"> 
+        <div class="cart-modal" onclick="event.stopPropagation()"> 
             <h2 id="authTitle">Вхід у кабінет</h2>
             <form id="authForm" class="contact-form">
                 <input type="email" id="authUserEmail" placeholder="Ваш Email" required>
@@ -358,9 +362,25 @@
         </div>
     </div>
 
+    <!-- Модальне вікно Особистого кабінету (Історія замовлень) -->
+    <div id="cabinetOverlay" class="overlay">
+        <div class="cart-modal" style="max-width: 700px;" onclick="event.stopPropagation()">
+            <h2>Особистий кабінет</h2>
+            <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--borderColor);">
+                <h3 style="margin-top: 0;">Історія замовлень</h3>
+                <div id="userOrdersList" style="max-height: 400px; overflow-y: auto;">
+                    <p>Завантаження...</p>
+                </div>
+            </div>
+            <div class="cart-actions">
+                <button id="closeCabinetBtn">Закрити</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Модальне вікно Адмін-панелі -->
     <div id="adminOverlay" class="overlay">
-        <div class="cart-modal" style="max-width: 600px;">
+        <div class="cart-modal" style="max-width: 600px;" onclick="event.stopPropagation()">
             <h2>Адмін-панель</h2>
             
             <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--borderColor);">
@@ -405,7 +425,7 @@
         });
     </script>
 
-    <!-- Скрипт 2: Firebase, Автентифікація, Кошик та Telegram-бот -->
+    <!-- Скрипт 2: Firebase, Автентифікація, Кошик, PDF та Telegram-бот -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -432,6 +452,7 @@
         let currentUser = null; 
         let globalProducts = [];
         let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
+        let globalOrders = []; 
 
         // UI елементи
         const productsGrid = document.getElementById('productsGrid');
@@ -441,6 +462,8 @@
         const lightboxImgUI = document.getElementById('lightboxImg');
         const authBtnUI = document.getElementById('authBtn');
         const adminBtnUI = document.getElementById('adminBtn');
+        const cabinetBtnUI = document.getElementById('cabinetBtn');
+        const logoutBtnUI = document.getElementById('logoutBtn');
         
         // Оверлеї (модальні вікна)
         const lightboxOverlayUI = document.getElementById('lightboxOverlay');
@@ -448,12 +471,16 @@
         const checkoutOverlay = document.getElementById('checkoutOverlay');
         const authOverlay = document.getElementById('authOverlay');
         const adminOverlay = document.getElementById('adminOverlay');
+        const cabinetOverlay = document.getElementById('cabinetOverlay');
+        const userOrdersList = document.getElementById('userOrdersList');
 
         // Відстежуємо стан користувача
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
-                authBtnUI.textContent = 'Вийти з кабінету';
+                authBtnUI.style.display = 'none';
+                cabinetBtnUI.style.display = 'block';
+                logoutBtnUI.style.display = 'block';
                 authOverlay.classList.remove('active');
                 
                 // Якщо увійшов адмін - показуємо кнопку "Адмін-панель"
@@ -463,7 +490,9 @@
                     adminBtnUI.style.display = 'none';
                 }
             } else {
-                authBtnUI.textContent = 'Увійти';
+                authBtnUI.style.display = 'block';
+                cabinetBtnUI.style.display = 'none';
+                logoutBtnUI.style.display = 'none';
                 adminBtnUI.style.display = 'none';
             }
             if (globalProducts.length > 0) renderProducts(globalProducts);
@@ -477,16 +506,87 @@
         const toggleAuthModeBtn = document.getElementById('toggleAuthModeBtn');
 
         authBtnUI.addEventListener('click', () => {
+            authOverlay.classList.add('active');
+        });
+
+        logoutBtnUI.addEventListener('click', () => {
             if (currentUser) {
                 signOut(auth).then(() => {
                     shoppingCart = []; 
                     saveAndRenderCart();
                     alert('Ви успішно вийшли з акаунту.');
                 });
-            } else {
-                authOverlay.classList.add('active');
             }
         });
+
+        cabinetBtnUI.addEventListener('click', async () => {
+            cabinetOverlay.classList.add('active');
+            await loadUserOrders();
+        });
+
+        document.getElementById('closeCabinetBtn').addEventListener('click', () => {
+            cabinetOverlay.classList.remove('active');
+        });
+
+        // Функція для завантаження та виводу історії замовлень клієнта
+        async function loadUserOrders() {
+            if (!currentUser) return;
+            userOrdersList.innerHTML = '<p>Завантаження історії...</p>';
+            try {
+                const ordersSnap = await getDocs(collection(db, 'orders'));
+                globalOrders = [];
+                ordersSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.userId === currentUser.uid) {
+                        globalOrders.push({ id: doc.id, ...data });
+                    }
+                });
+                
+                // Сортуємо від найновіших до найстаріших
+                globalOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                if (globalOrders.length === 0) {
+                    userOrdersList.innerHTML = '<p>У вас ще немає замовлень.</p>';
+                    return;
+                }
+
+                let html = '';
+                globalOrders.forEach(order => {
+                    const date = new Date(order.createdAt).toLocaleDateString('uk-UA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    
+                    // Формуємо список товарів для розгортання
+                    let itemsHtml = order.items.map(item => `
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px dashed var(--borderColor);">
+                            <span>- ${item.name} (${item.quantity} ${item.unit})</span>
+                            <strong>${item.price * item.quantity} грн</strong>
+                        </div>
+                    `).join('');
+
+                    html += `
+                        <div class="cart-item" style="flex-direction: column; align-items: flex-start; gap: 0.5rem; background: var(--cardBg); padding: 1rem; border-radius: 6px; margin-bottom: 1rem; width: 100%; box-sizing: border-box;">
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <strong>Замовлення від ${date}</strong>
+                                <span style="color: var(--primaryColor); font-weight: bold;">${order.totalSum} грн</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--textColor); width: 100%;">
+                                <div style="margin-bottom: 0.5rem;">Статус: <b style="color: var(--primaryColor);">${order.status || 'Нове'}</b></div>
+                                <details style="background: rgba(0,0,0,0.03); padding: 0.5rem; border-radius: 4px; border: 1px solid var(--borderColor);">
+                                    <summary style="cursor: pointer; font-weight: bold; outline: none;">Переглянути товари (${order.items.length} шт.)</summary>
+                                    <div style="margin-top: 0.5rem;">
+                                        ${itemsHtml}
+                                    </div>
+                                </details>
+                            </div>
+                            <button class="download-pdf-btn" data-id="${order.id}" style="margin-top: 0.5rem; background-color: #e3f2fd; color: #1976d2; border-color: #bbdefb; padding: 0.5rem; width: 100%; font-weight: bold; cursor: pointer; border-radius: 4px; border-style: solid; border-width: 1px;">⬇ Завантажити PDF чек</button>
+                        </div>
+                    `;
+                });
+                userOrdersList.innerHTML = html;
+            } catch (error) {
+                console.error("Помилка завантаження історії:", error);
+                userOrdersList.innerHTML = '<p>Не вдалося завантажити історію. Перевірте підключення.</p>';
+            }
+        }
 
         toggleAuthModeBtn.addEventListener('click', () => {
             isLoginMode = !isLoginMode;
@@ -677,7 +777,7 @@
         });
 
         // Закриття модалок по кліку на темний фон
-        [lightboxOverlayUI, cartOverlay, authOverlay, adminOverlay, checkoutOverlay].forEach(overlay => {
+        [lightboxOverlayUI, cartOverlay, authOverlay, adminOverlay, checkoutOverlay, cabinetOverlay].forEach(overlay => {
             if (overlay) {
                 overlay.addEventListener('click', (e) => {
                     if (e.target === overlay) overlay.classList.remove('active');
@@ -687,6 +787,11 @@
 
         // Глобальний обробник подій (делегування)
         document.body.addEventListener('click', async (event) => {
+            // Завантаження PDF
+            if (event.target.classList.contains('download-pdf-btn')) {
+                const orderId = event.target.getAttribute('data-id');
+                generateOrderPDF(orderId);
+            }
             // Клік по кнопці "Додати"
             if (event.target.classList.contains('buyBtn')) {
                 addToCart(event.target.getAttribute('data-id'));
@@ -737,6 +842,79 @@
                 }
             }
         });
+
+        // --- ЛОГІКА PDF ГЕНЕРАЦІЇ ---
+        function generateOrderPDF(orderId) {
+            const order = globalOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const printContent = document.createElement('div');
+            printContent.style.padding = '20px';
+            printContent.style.fontFamily = 'Arial, sans-serif';
+            printContent.style.color = '#333';
+            
+            const dateStr = new Date(order.createdAt).toLocaleString('uk-UA');
+            
+            let itemsHtml = order.items.map(item => `
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px;">${item.name}</td>
+                    <td style="padding: 8px; text-align: center;">${item.quantity} ${item.unit}</td>
+                    <td style="padding: 8px; text-align: right;">${item.price * item.quantity} грн</td>
+                </tr>
+            `).join('');
+
+            printContent.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="color: #2e7d32; margin: 0;">Локальна Ферма</h1>
+                    <p style="margin: 5px 0;">Офіційна накладна замовлення</p>
+                </div>
+                <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                    <p style="margin: 5px 0;"><strong>Дата оформлення:</strong> ${dateStr}</p>
+                    <p style="margin: 5px 0;"><strong>Клієнт:</strong> ${order.customerFullName}</p>
+                    <p style="margin: 5px 0;"><strong>Телефон:</strong> ${order.customerPhone}</p>
+                    <p style="margin: 5px 0;"><strong>Місто доставки:</strong> ${order.customerCity}</p>
+                    <p style="margin: 5px 0;"><strong>Статус:</strong> ${order.status || 'Нове'}</p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #f5f5f5; text-align: left;">
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Товар</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd; text-align: center;">Кількість</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd; text-align: right;">Сума</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                <div style="text-align: right;">
+                    <h2 style="color: #2e7d32; margin: 0;">Загалом: ${order.totalSum} грн</h2>
+                </div>
+            `;
+
+            const opt = {
+                margin:       15,
+                filename:     `ZAMOVLENNYA_${orderId.substring(0, 6)}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const btn = document.querySelector(`.download-pdf-btn[data-id="${orderId}"]`);
+            const originalText = btn.textContent;
+            btn.textContent = 'Формування...';
+            btn.disabled = true;
+
+            html2pdf().set(opt).from(printContent).save().then(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }).catch(err => {
+                console.error("Помилка генерації PDF:", err);
+                alert("Не вдалося створити PDF. Спробуйте інший браузер.");
+                btn.textContent = originalText;
+                btn.disabled = false;
+            });
+        }
 
         // --- ЛОГІКА АДМІН-ПАНЕЛІ ---
         const adminProductsList = document.getElementById('adminProductsList');
