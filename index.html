@@ -301,18 +301,8 @@
                 <p>Завантаження актуальних пропозицій...</p>
             </div>
         </section>
-
-        <section id="contact">
-            <h2>Оформити замовлення</h2>
-            <form id="orderForm" class="contact-form">
-                <input type="text" id="customerFullName" name="name" placeholder="Прізвище та ім'я" required>
-                <input type="tel" id="customerPhone" name="phone" placeholder="Номер телефону" required>
-                <input type="email" id="customerEmail" name="email" placeholder="Електронна пошта" required>
-                <input type="text" id="customerCity" name="city" placeholder="Місто доставки" required>
-                <textarea id="orderMessage" name="message" rows="3" placeholder="Коментар до замовлення (необов'язково)"></textarea>
-                <button type="submit" id="submitOrderBtn" style="background-color: var(--primaryColor); color: #ffffff;">Відправити замовлення</button>
-            </form>
-        </section>
+        
+        <!-- Секцію з формою замовлення перенесено у модальне вікно нижче -->
     </main>
 
     <!-- Модальне вікно для галереї товарів (Lightbox) -->
@@ -332,6 +322,24 @@
                 <button id="closeCartBtn">Продовжити покупки</button>
                 <button id="goToCheckoutBtn" style="background-color: var(--primaryColor); color: white;">Оформити</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Модальне вікно Оформлення замовлення (ТІЛЬКИ ДЛЯ ЗАРЕЄСТРОВАНИХ) -->
+    <div id="checkoutOverlay" class="overlay">
+        <div class="cart-modal"> 
+            <h2>Деталі доставки</h2>
+            <form id="orderForm" class="contact-form">
+                <input type="text" id="customerFullName" name="name" placeholder="Прізвище та ім'я" required>
+                <input type="tel" id="customerPhone" name="phone" placeholder="Номер телефону" required>
+                <input type="email" id="customerEmail" name="email" placeholder="Електронна пошта" required>
+                <input type="text" id="customerCity" name="city" placeholder="Місто доставки" required>
+                <textarea id="orderMessage" name="message" rows="3" placeholder="Коментар до замовлення (необов'язково)"></textarea>
+                <div class="cart-actions">
+                    <button type="button" id="closeCheckoutBtn">Скасувати</button>
+                    <button type="submit" id="submitOrderBtn" style="background-color: var(--primaryColor); color: #ffffff;">Підтвердити замовлення</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -384,7 +392,7 @@
         <p>Офіційний постачальник крафтової продукції.</p>
     </footer>
 
-    <!-- Скрипт 1: Логіка UI (Теми та Модалки) -->
+    <!-- Скрипт 1: Логіка UI (Теми) -->
     <script>
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const htmlElement = document.documentElement;
@@ -394,31 +402,6 @@
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             htmlElement.setAttribute('data-theme', newTheme);
             themeToggleBtn.textContent = newTheme === 'light' ? 'Темна тема' : 'Світла тема';
-        });
-
-        const lightboxOverlay = document.getElementById('lightboxOverlay');
-        const cartOverlay = document.getElementById('cartOverlay');
-        const cartBtn = document.getElementById('cartBtn');
-
-        // Відкриття кошика
-        cartBtn.addEventListener('click', () => cartOverlay.classList.add('active'));
-        
-        // Закриття кошика
-        document.getElementById('closeCartBtn').addEventListener('click', () => cartOverlay.classList.remove('active'));
-        
-        // Кнопка Оформити (закриває кошик і плавно скролить до форми)
-        document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
-            cartOverlay.classList.remove('active');
-            document.getElementById('contact').scrollIntoView();
-        });
-
-        // Закриття модалок по кліку на темний фон
-        [lightboxOverlay, cartOverlay, document.getElementById('authOverlay'), document.getElementById('adminOverlay')].forEach(overlay => {
-            if (overlay) {
-                overlay.addEventListener('click', (e) => {
-                    if (e.target === overlay) overlay.classList.remove('active');
-                });
-            }
         });
     </script>
 
@@ -450,15 +433,21 @@
         let globalProducts = [];
         let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
 
+        // UI елементи
         const productsGrid = document.getElementById('productsGrid');
         const cartBtnUI = document.getElementById('cartBtn');
         const cartItemsContainer = document.getElementById('cartItemsContainer');
         const cartTotalSum = document.getElementById('cartTotalSum');
         const lightboxImgUI = document.getElementById('lightboxImg');
-        const lightboxOverlayUI = document.getElementById('lightboxOverlay');
-        const authOverlay = document.getElementById('authOverlay');
         const authBtnUI = document.getElementById('authBtn');
         const adminBtnUI = document.getElementById('adminBtn');
+        
+        // Оверлеї (модальні вікна)
+        const lightboxOverlayUI = document.getElementById('lightboxOverlay');
+        const cartOverlay = document.getElementById('cartOverlay');
+        const checkoutOverlay = document.getElementById('checkoutOverlay');
+        const authOverlay = document.getElementById('authOverlay');
+        const adminOverlay = document.getElementById('adminOverlay');
 
         // Відстежуємо стан користувача
         onAuthStateChanged(auth, (user) => {
@@ -659,6 +648,43 @@
             cartTotalSum.textContent = `Разом: ${total} грн`;
         }
 
+        // --- УПРАВЛІННЯ ВІКНАМИ (МОДАЛКИ) ---
+        cartBtnUI.addEventListener('click', () => cartOverlay.classList.add('active'));
+        document.getElementById('closeCartBtn').addEventListener('click', () => cartOverlay.classList.remove('active'));
+        document.getElementById('closeCheckoutBtn').addEventListener('click', () => checkoutOverlay.classList.remove('active'));
+
+        // Кнопка "Оформити" всередині кошика
+        document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
+            if (!currentUser) {
+                alert('Будь ласка, увійдіть у систему або зареєструйтесь, щоб оформити замовлення.');
+                cartOverlay.classList.remove('active');
+                authOverlay.classList.add('active');
+                return;
+            }
+            if (shoppingCart.length === 0) {
+                alert('Ваш кошик порожній. Додайте товари.');
+                return;
+            }
+            // Закриваємо кошик, відкриваємо форму замовлення
+            cartOverlay.classList.remove('active');
+            
+            // Якщо емейл клієнта вже відомий, можемо підставити його у форму
+            if (currentUser && currentUser.email) {
+                document.getElementById('customerEmail').value = currentUser.email;
+            }
+            
+            checkoutOverlay.classList.add('active');
+        });
+
+        // Закриття модалок по кліку на темний фон
+        [lightboxOverlayUI, cartOverlay, authOverlay, adminOverlay, checkoutOverlay].forEach(overlay => {
+            if (overlay) {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) overlay.classList.remove('active');
+                });
+            }
+        });
+
         // Глобальний обробник подій (делегування)
         document.body.addEventListener('click', async (event) => {
             // Клік по кнопці "Додати"
@@ -713,7 +739,6 @@
         });
 
         // --- ЛОГІКА АДМІН-ПАНЕЛІ ---
-        const adminOverlay = document.getElementById('adminOverlay');
         const adminProductsList = document.getElementById('adminProductsList');
 
         adminBtnUI.addEventListener('click', () => {
@@ -833,7 +858,7 @@ ${orderDetailsText}
                 submitOrderBtn.textContent = 'Відправка...';
                 submitOrderBtn.disabled = true;
 
-                // 1. Зберігаємо замовлення у базі Firebase (створюється колекція 'orders')
+                // 1. Зберігаємо замовлення у базі Firebase 
                 await addDoc(collection(db, 'orders'), {
                     customerFullName: customerFullName,
                     customerPhone: customerPhone,
@@ -865,6 +890,7 @@ ${orderDetailsText}
                     shoppingCart = [];
                     saveAndRenderCart();
                     orderForm.reset();
+                    checkoutOverlay.classList.remove('active'); // Закриваємо модалку після успіху
                 } else {
                     console.error('Помилка Telegram API:', data);
                     alert(`Замовлення збережено в базі, але сталася помилка відправки в Telegram. Код: ${data.error_code}`);
@@ -873,7 +899,7 @@ ${orderDetailsText}
                 console.error("Помилка:", error);
                 alert('Виникла помилка. Перевірте інтернет-з\'єднання або дозволи Firebase.');
             } finally {
-                submitOrderBtn.textContent = 'Відправити замовлення';
+                submitOrderBtn.textContent = 'Підтвердити замовлення';
                 submitOrderBtn.disabled = false;
             }
         });
