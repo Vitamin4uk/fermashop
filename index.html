@@ -58,6 +58,31 @@
             color: var(--primaryColor);
         }
 
+        .main-nav {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .main-nav a {
+            text-decoration: none;
+            color: var(--textColor);
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: color 0.2s;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .main-nav a:hover {
+            color: var(--primaryColor);
+        }
+
+        .main-nav a.active {
+            color: var(--primaryColor);
+            border-bottom-color: var(--primaryColor);
+        }
+
         .header-controls {
             display: flex;
             gap: 0.5rem;
@@ -161,6 +186,27 @@
             padding: 0.6rem;
             border-radius: 4px;
             font-size: 0.8rem;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .photo-grid img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .photo-grid img:hover {
+            transform: scale(1.03);
+            z-index: 1;
         }
 
         /* Модальні вікна */
@@ -271,6 +317,13 @@
 
     <header>
         <div class="logo">Локальна Ферма</div>
+        
+        <!-- Новий блок навігації -->
+        <nav class="main-nav">
+            <a href="#" id="navShop" class="active">Магазин</a>
+            <a href="#" id="navFarm">Наше господарство</a>
+        </nav>
+
         <div class="header-controls">
             <button id="themeToggleBtn">🎨</button>
             <button id="adminBtn" style="display: none; border-color: var(--accentColor); color: var(--accentColor);">Адмін</button>
@@ -281,12 +334,35 @@
     </header>
 
     <main>
-        <section id="products">
-            <h2>Свіжі пропозиції</h2>
-            <div id="productsGrid" class="gallery-grid">
-                <p>Завантаження продуктів...</p>
-            </div>
-        </section>
+        <!-- Обгортка для магазину -->
+        <div id="view-shop">
+            <section id="products">
+                <h2>Свіжі пропозиції</h2>
+                <div id="productsGrid" class="gallery-grid">
+                    <p>Завантаження продуктів...</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- Обгортка для нового розділу Галереї -->
+        <div id="view-farm" style="display: none;">
+            <section id="farm-gallery">
+                <h2 style="text-align: center; color: var(--primaryColor); font-size: 2rem;">Наше господарство</h2>
+                <p style="text-align: center; color: var(--textColor); max-width: 800px; margin: 0 auto; line-height: 1.6;">
+                    Ми пишаємося тим, що створюємо екологічно чисті та корисні продукти. Наша ферма — це місце, де любов до природи поєднується з відповідальним підходом до тваринництва та землеробства. Переконайтеся самі!
+                </p>
+                
+                <!-- Галерея фотографій -->
+                <div class="photo-grid">
+                    <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Поле на нашій фермі" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Наші корівки на вільному випасі" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1595858603417-062e08d6d6db?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Свіжий урожай овочів" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1585336261022-680e284a22c1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Сучасна еко-теплиця" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1548550023-2bf3d4860181?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Домашня птиця" loading="lazy">
+                    <img src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Турботливі руки фермера" loading="lazy">
+                </div>
+            </section>
+        </div>
     </main>
 
     <!-- Модалка Кошика -->
@@ -394,7 +470,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // Додано sendEmailVerification
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // Запобіжник для запобігання XSS (Cross-Site Scripting) ін'єкцій
         const escapeHTML = (str) => {
@@ -801,7 +878,14 @@
             const pass = document.getElementById('authUserPassword').value;
             try {
                 if (isLogin) {
-                    await signInWithEmailAndPassword(auth, email, pass);
+                    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                    
+                    // ПЕРЕВІРКА ПІДТВЕРДЖЕННЯ ПОШТИ (пропускаємо адміна, щоб ви точно могли зайти)
+                    if (!userCredential.user.emailVerified && userCredential.user.email !== ADMIN_EMAIL) {
+                        await signOut(auth); // Примусово виходимо
+                        alert("Будь ласка, підтвердіть вашу електронну пошту перед входом. Перевірте вхідні повідомлення або папку Спам.");
+                        return; // Зупиняємо виконання
+                    }
                 } else {
                     const fullName = document.getElementById('authFullName').value.trim();
                     const phone = document.getElementById('authPhone').value.trim();
@@ -821,13 +905,29 @@
                     } catch (fsErr) {
                         console.warn("Користувача створено, але не збережено в Firestore.", fsErr);
                     }
+
+                    // ВІДПРАВЛЯЄМО ЛИСТ ДЛЯ ПІДТВЕРДЖЕННЯ
+                    await sendEmailVerification(userCredential.user);
+                    
+                    // Одразу виходимо з акаунта, поки пошта не підтверджена
+                    await signOut(auth);
+                    
+                    alert("Реєстрація успішна! На вашу електронну пошту надіслано лист із посиланням. Будь ласка, підтвердіть пошту перед першим входом.");
                 }
+                
                 closeAllModals();
                 e.target.reset(); 
                 if (!isLogin) document.getElementById('toggleAuthModeBtn').onclick();
 
             } catch (err) { 
-                alert("Помилка авторизації. Перевірте дані."); 
+                if (err.code === 'auth/invalid-credential') {
+                    alert("Невірний логін або пароль.");
+                } else if (err.code === 'auth/email-already-in-use') {
+                    alert("Ця пошта вже зареєстрована.");
+                } else {
+                    alert("Помилка авторизації. Перевірте дані.");
+                }
+                console.error(err);
             }
         });
 
@@ -912,6 +1012,23 @@
             const html = document.documentElement;
             html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
         };
+
+        // --- НАВІГАЦІЯ ПО САЙТУ ---
+        document.getElementById('navShop').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('view-shop').style.display = 'block';
+            document.getElementById('view-farm').style.display = 'none';
+            document.getElementById('navShop').classList.add('active');
+            document.getElementById('navFarm').classList.remove('active');
+        });
+
+        document.getElementById('navFarm').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('view-shop').style.display = 'none';
+            document.getElementById('view-farm').style.display = 'block';
+            document.getElementById('navFarm').classList.add('active');
+            document.getElementById('navShop').classList.remove('active');
+        });
 
         loadProducts();
         updateCartUI();
