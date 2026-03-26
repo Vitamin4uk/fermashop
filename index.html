@@ -307,10 +307,10 @@
         <div class="modal">
             <h2>Оформлення замовлення</h2>
             <form id="orderForm" class="contact-form">
-                <input type="text" id="customerFullName" placeholder="Прізвище та ім'я" required>
-                <input type="tel" id="customerPhone" placeholder="Номер телефону" required>
-                <input type="text" id="customerCity" placeholder="Місто доставки" required>
-                <textarea id="orderMessage" rows="3" placeholder="Коментар до замовлення"></textarea>
+                <input type="text" id="customerFullName" placeholder="Прізвище та ім'я" required maxlength="100">
+                <input type="tel" id="customerPhone" placeholder="Номер телефону" required pattern="[\+0-9\-\(\)\s]{10,20}">
+                <input type="text" id="customerCity" placeholder="Місто доставки" required maxlength="100">
+                <textarea id="orderMessage" rows="3" placeholder="Коментар до замовлення" maxlength="500"></textarea>
                 <button type="submit" id="submitOrderBtn" style="background-color: var(--primaryColor); color: #ffffff; padding: 1rem; font-weight: bold;">Підтвердити замовлення</button>
             </form>
             <button id="closeCheckoutBtn" style="width: 100%; margin-top: 1rem;">Скасувати</button>
@@ -322,12 +322,12 @@
         <div class="modal">
             <h2 id="authTitle">Вхід</h2>
             <form id="authForm" class="contact-form">
-                <input type="email" id="authUserEmail" placeholder="Email" required>
-                <input type="password" id="authUserPassword" placeholder="Пароль" required minlength="6">
+                <input type="email" id="authUserEmail" placeholder="Email" required maxlength="100">
+                <input type="password" id="authUserPassword" placeholder="Пароль" required minlength="6" maxlength="50">
                 
                 <div id="registerFields" style="display: none; flex-direction: column; gap: 0.8rem;">
-                    <input type="text" id="authFullName" placeholder="Прізвище та ім'я">
-                    <input type="tel" id="authPhone" placeholder="Номер телефону">
+                    <input type="text" id="authFullName" placeholder="Прізвище та ім'я" maxlength="100">
+                    <input type="tel" id="authPhone" placeholder="Номер телефону" pattern="[\+0-9\-\(\)\s]{10,20}">
                 </div>
 
                 <button type="submit" id="authSubmitBtn" style="background-color: var(--primaryColor); color: white;">Увійти</button>
@@ -364,11 +364,20 @@
             <!-- Секція додавання товару -->
             <form id="addProductForm" class="contact-form" style="margin-bottom: 2rem; padding: 1rem; border: 1px dashed var(--borderColor);">
                 <h3 style="margin-top:0">Новий товар</h3>
-                <input type="text" id="addProductName" placeholder="Назва" required>
-                <input type="number" id="addProductPrice" placeholder="Ціна (грн)" required>
-                <input type="text" id="addProductUnit" placeholder="Одиниця (кг, шт, дес)" required>
+                <input type="text" id="addProductName" placeholder="Назва" required maxlength="100">
+                <input type="number" id="addProductPrice" placeholder="Ціна (грн)" required min="0.01" step="0.01">
+                <input type="text" id="addProductUnit" placeholder="Одиниця (кг, шт, дес)" required maxlength="20">
                 <input type="url" id="addProductImage" placeholder="URL зображення">
                 <button type="submit" style="background-color: var(--accentColor); color: white;">Опублікувати</button>
+            </form>
+
+            <!-- Секція налаштувань Telegram -->
+            <form id="telegramSettingsForm" class="contact-form" style="margin-bottom: 2rem; padding: 1rem; border: 1px dashed var(--borderColor);">
+                <h3 style="margin-top:0">Налаштування Telegram</h3>
+                <p style="font-size: 0.8rem; color: #666; margin-top: -10px;">Введіть токен бота та ID чату для отримання сповіщень.</p>
+                <input type="text" id="tgBotToken" placeholder="Bot Token (напр. 12345:ABCde...)" required>
+                <input type="text" id="tgChatId" placeholder="Chat ID (напр. 372259859)" required>
+                <button type="submit" style="background-color: var(--primaryColor); color: white;">Зберегти налаштування Telegram</button>
             </form>
             
             <!-- Список товарів -->
@@ -384,8 +393,22 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // Запобіжник для запобігання XSS (Cross-Site Scripting) ін'єкцій
+        const escapeHTML = (str) => {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        };
 
         const ADMIN_EMAIL = 'mostovyi.zsu@gmail.com'; 
         const firebaseConfig = {
@@ -448,18 +471,23 @@
                 grid.innerHTML = "<p>Асортимент оновлюється...</p>";
                 return;
             }
-            grid.innerHTML = globalProducts.map(p => `
+            grid.innerHTML = globalProducts.map(p => {
+                const safeName = escapeHTML(p.name);
+                const safeUnit = escapeHTML(p.unit);
+                const safeImg = p.imageUrl && p.imageUrl.startsWith('http') ? escapeHTML(p.imageUrl) : 'https://via.placeholder.com/300?text=Ферма';
+                
+                return `
                 <div class="product-card">
-                    <img src="${p.imageUrl || 'https://via.placeholder.com/300?text=Ферма'}" class="product-img">
+                    <img src="${safeImg}" class="product-img" loading="lazy" alt="${safeName}">
                     <div class="product-info">
-                        <h3 style="margin:0 0 5px 0">${p.name}</h3>
-                        <p class="price">${p.price} грн / ${p.unit}</p>
+                        <h3 style="margin:0 0 5px 0">${safeName}</h3>
+                        <p class="price">${p.price} грн / ${safeUnit}</p>
                         ${currentUser 
-                            ? `<button class="buyBtn add-btn" data-id="${p.id}">В кошик</button>` 
+                            ? `<button class="buyBtn add-btn" data-id="${escapeHTML(p.id)}">В кошик</button>` 
                             : `<button class="auth-required-btn open-auth">Увійти для покупки</button>`}
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function saveCart() {
@@ -487,12 +515,12 @@
                     return `
                         <div class="cart-item">
                             <div style="flex:1">
-                                <strong>${item.name}</strong><br>
+                                <strong>${escapeHTML(item.name)}</strong><br>
                                 <small>${item.price} грн x ${item.quantity}</small>
                             </div>
                             <div style="display:flex; gap:10px; align-items:center">
                                 <span>${item.price * item.quantity} грн</span>
-                                <button class="remove-item remove-btn" data-id="${item.id}">✖</button>
+                                <button class="remove-item remove-btn" data-id="${escapeHTML(item.id)}">✖</button>
                             </div>
                         </div>
                     `;
@@ -519,9 +547,9 @@
                 container.innerHTML = orders.map(order => `
                     <div class="order-history-card">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items: center;">
-                            <strong>Замовлення №${order.orderNumber || '---'}</strong>
+                            <strong>Замовлення №${escapeHTML(order.orderNumber) || '---'}</strong>
                             <span style="padding: 0.2rem 0.6rem; border-radius: 4px; background-color: #e8f5e9; border: 1px solid var(--primaryColor); color: var(--primaryColor); font-weight: bold; font-size: 0.85rem;">
-                                ${order.status || 'Нове'}
+                                ${escapeHTML(order.status) || 'Нове'}
                             </span>
                         </div>
                         <div style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #666;">
@@ -530,10 +558,11 @@
                         <details class="order-details">
                             <summary>Деталі замовлення (${order.totalSum} грн)</summary>
                             <div style="padding-top:10px; border-top:1px solid #ddd; font-size:0.85rem">
-                                ${order.items.map(i => `<div>${i.name} — ${i.quantity} ${i.unit} (${i.price * i.quantity} грн)</div>`).join('')}
+                                ${order.items.map(i => `<div>${escapeHTML(i.name)} — ${i.quantity} ${escapeHTML(i.unit)} (${i.price * i.quantity} грн)</div>`).join('')}
                                 <div style="margin-top:10px; color:#666">
-                                    Місто: ${order.customerCity}<br>
-                                    Отримувач: ${order.customerFullName}
+                                    Місто: ${escapeHTML(order.customerCity)}<br>
+                                    Отримувач: ${escapeHTML(order.customerFullName)}<br>
+                                    Коментар: ${escapeHTML(order.orderMessage)}
                                 </div>
                             </div>
                         </details>
@@ -547,7 +576,6 @@
             const container = document.getElementById('adminOrdersList');
             container.innerHTML = "<p>Завантаження замовлень...</p>";
             try {
-                // Для адміна завантажуємо ВСІ замовлення
                 const snap = await getDocs(collection(db, 'orders'));
                 const orders = snap.docs.map(d => ({id: d.id, ...d.data()}))
                                     .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -560,8 +588,8 @@
                 container.innerHTML = orders.map(order => `
                     <div class="order-history-card" style="border-left: 4px solid var(--primaryColor);">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items: center;">
-                            <strong>№${order.orderNumber || '---'}</strong>
-                            <select class="status-select" data-id="${order.id}" style="padding: 0.2rem; border-radius: 4px; border: 1px solid var(--primaryColor);">
+                            <strong>№${escapeHTML(order.orderNumber) || '---'}</strong>
+                            <select class="status-select" data-id="${escapeHTML(order.id)}" style="padding: 0.2rem; border-radius: 4px; border: 1px solid var(--primaryColor);">
                                 <option value="Нове" ${order.status === 'Нове' ? 'selected' : ''}>Нове</option>
                                 <option value="В обробці" ${order.status === 'В обробці' ? 'selected' : ''}>В обробці</option>
                                 <option value="Відправлено" ${order.status === 'Відправлено' ? 'selected' : ''}>Відправлено</option>
@@ -570,14 +598,17 @@
                             </select>
                         </div>
                         <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
-                            Клієнт: ${order.customerFullName} (${order.customerPhone}) | Сума: <b>${order.totalSum} грн</b><br>
+                            Клієнт: ${escapeHTML(order.customerFullName)} (${escapeHTML(order.customerPhone)}) | Сума: <b>${order.totalSum} грн</b><br>
                             ${new Date(order.createdAt).toLocaleString()}
                         </div>
                         <details class="order-details">
                             <summary>Товари</summary>
                             <div style="padding-top:5px; border-top:1px solid #ddd; font-size:0.85rem">
-                                ${order.items.map(i => `<div>${i.name} — ${i.quantity} ${i.unit}</div>`).join('')}
-                                <div style="margin-top:5px;">Місто: ${order.customerCity}</div>
+                                ${order.items.map(i => `<div>${escapeHTML(i.name)} — ${i.quantity} ${escapeHTML(i.unit)}</div>`).join('')}
+                                <div style="margin-top:5px;">
+                                    Місто: ${escapeHTML(order.customerCity)}<br>
+                                    Коментар: ${escapeHTML(order.orderMessage)}
+                                </div>
                             </div>
                         </details>
                     </div>
@@ -592,10 +623,10 @@
             const list = document.getElementById('adminProductsList');
             list.innerHTML = globalProducts.map(p => `
                 <div class="admin-item">
-                    <span style="flex:1"><strong>${p.name}</strong> (${p.price} грн)</span>
+                    <span style="flex:1"><strong>${escapeHTML(p.name)}</strong> (${p.price} грн)</span>
                     <div style="display:flex; gap:5px">
-                        <button class="admin-edit-price" data-id="${p.id}">Ціна</button>
-                        <button class="admin-delete remove-btn" data-id="${p.id}">🗑</button>
+                        <button class="admin-edit-price" data-id="${escapeHTML(p.id)}">Ціна</button>
+                        <button class="admin-delete remove-btn" data-id="${escapeHTML(p.id)}">🗑</button>
                     </div>
                 </div>
             `).join('');
@@ -603,32 +634,21 @@
 
         // --- ГЛОБАЛЬНА ОБРОБКА ПОДІЙ ---
         
-        // Надійна зміна статусу замовлення (для селектів в адмінці)
         document.body.addEventListener('change', async (e) => {
             const target = e.target;
-            
-            // Запобіжник: перевіряємо чи є у елемента класи (уникаємо TypeError на SVG чи TextNodes)
             if (target && target.classList && target.classList.contains('status-select')) {
                 const orderId = target.getAttribute('data-id');
                 const newStatus = target.value;
-                
-                if (!orderId) {
-                    console.error("Помилка: Не знайдено ID замовлення.");
-                    return;
-                }
+                if (!orderId) return;
 
                 try {
-                    // Блокуємо селект на час запиту, щоб уникнути конфліктів та спаму кліків
                     target.disabled = true;
-                    
                     await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
-                    
-                    // Візуальне підтвердження збереження
                     target.style.backgroundColor = "#e8f5e9";
                     setTimeout(() => { target.style.backgroundColor = ""; }, 1000);
                 } catch (err) {
-                    console.error("Помилка Firestore при зміні статусу:", err);
-                    alert("Помилка доступу (Permission Denied)!\n\nЩоб змінювати статуси, перейдіть у Firebase Console -> Firestore Database -> Rules і додайте дозвіл на 'update' для колекції 'orders', як описано в інструкції.");
+                    console.error(err);
+                    alert("Помилка доступу (Permission Denied)! Перевірте Firebase Rules.");
                 } finally {
                     target.disabled = false;
                 }
@@ -639,7 +659,6 @@
             const target = e.target;
             if (!target.closest) return;
 
-            // В кошик
             const addBtn = target.closest('.add-btn');
             if (addBtn) {
                 const id = addBtn.dataset.id;
@@ -651,7 +670,6 @@
                 return;
             }
 
-            // Видалити з кошика
             const removeBtn = target.closest('.remove-item');
             if (removeBtn) {
                 shoppingCart = shoppingCart.filter(x => x.id !== removeBtn.dataset.id);
@@ -660,7 +678,6 @@
                 return;
             }
 
-            // Адмін: Зміна ціни
             const editPriceBtn = target.closest('.admin-edit-price');
             if (editPriceBtn) {
                 const id = editPriceBtn.dataset.id;
@@ -675,7 +692,6 @@
                 return;
             }
 
-            // Адмін: Видалення продукту
             const deleteBtn = target.closest('.admin-delete');
             if (deleteBtn) {
                 const id = deleteBtn.dataset.id;
@@ -689,25 +705,32 @@
                 return;
             }
 
-            // Відкриття/Закриття модалок
             if (target.id === 'cartBtn') { renderCartModal(); document.getElementById('cartOverlay').classList.add('active'); }
             if (target.id === 'authBtn') currentUser ? signOut(auth) : document.getElementById('authOverlay').classList.add('active');
             if (target.id === 'cabinetBtn') { loadCabinet(); document.getElementById('cabinetOverlay').classList.add('active'); }
             
             if (target.id === 'adminBtn') { 
                 renderAdminList(); 
-                loadAdminOrders(); // Завантажуємо замовлення при відкритті
+                loadAdminOrders(); 
+                
+                // Завантажуємо налаштування Telegram при відкритті адмінки
+                try {
+                    const tgDoc = await getDoc(doc(db, 'settings', 'telegram'));
+                    if (tgDoc.exists()) {
+                        document.getElementById('tgBotToken').value = tgDoc.data().botToken || '';
+                        document.getElementById('tgChatId').value = tgDoc.data().chatId || '';
+                    }
+                } catch (e) { console.warn("Не вдалося завантажити налаштування Telegram", e); }
+
                 document.getElementById('adminOverlay').classList.add('active'); 
             }
             
             if (target.classList.contains('open-auth')) document.getElementById('authOverlay').classList.add('active');
             
-            // Кнопки закриття
             if (['closeCartBtn', 'closeAuthBtn', 'closeCabinetBtn', 'closeAdminBtn', 'closeCheckoutBtn'].includes(target.id)) {
                 closeAllModals();
             }
 
-            // Перехід до оформлення
             if (target.id === 'checkoutBtn') {
                 closeAllModals();
                 if (!currentUser) {
@@ -717,24 +740,20 @@
                     alert('Кошик порожній.');
                 } else {
                     document.getElementById('checkoutOverlay').classList.add('active');
-                    if (currentUser.email) {
-                        const emailInput = document.getElementById('authUserEmail'); 
-                    }
                 }
             }
             
-            // Клік по фону оверлея
             if (target.classList.contains('overlay')) target.classList.remove('active');
         });
 
-        // Додавання продукту (Адмін)
+        // Додавання продукту
         document.getElementById('addProductForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
-                name: document.getElementById('addProductName').value,
+                name: document.getElementById('addProductName').value.trim(),
                 price: Number(document.getElementById('addProductPrice').value),
-                unit: document.getElementById('addProductUnit').value,
-                imageUrl: document.getElementById('addProductImage').value,
+                unit: document.getElementById('addProductUnit').value.trim(),
+                imageUrl: document.getElementById('addProductImage').value.trim(),
                 createdAt: new Date().toISOString()
             };
             try {
@@ -743,6 +762,20 @@
                 renderAdminList();
                 e.target.reset();
             } catch (err) { alert("Помилка додавання! Перевірте права доступу у Firebase."); }
+        });
+
+        // Збереження налаштувань Telegram
+        document.getElementById('telegramSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = document.getElementById('tgBotToken').value.trim();
+            const chat = document.getElementById('tgChatId').value.trim();
+            try {
+                await setDoc(doc(db, 'settings', 'telegram'), { botToken: token, chatId: chat });
+                alert("Налаштування Telegram успішно збережено!");
+            } catch (err) {
+                alert("Помилка збереження! Перевірте Firebase Rules для колекції settings.");
+                console.error(err);
+            }
         });
 
         // Авторизація
@@ -770,8 +803,8 @@
                 if (isLogin) {
                     await signInWithEmailAndPassword(auth, email, pass);
                 } else {
-                    const fullName = document.getElementById('authFullName').value;
-                    const phone = document.getElementById('authPhone').value;
+                    const fullName = document.getElementById('authFullName').value.trim();
+                    const phone = document.getElementById('authPhone').value.trim();
                     const formattedUserNum = Math.floor(1000 + Math.random() * 9000).toString();
 
                     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
@@ -811,12 +844,17 @@
                 const formattedNumber = Math.floor(100000 + Math.random() * 900000).toString();
                 const total = shoppingCart.reduce((acc, i) => acc + i.price * i.quantity, 0);
                 
+                const cName = document.getElementById('customerFullName').value.trim();
+                const cPhone = document.getElementById('customerPhone').value.trim();
+                const cCity = document.getElementById('customerCity').value.trim();
+                const cMessage = document.getElementById('orderMessage').value.trim();
+
                 const customerData = {
                     orderNumber: formattedNumber,
-                    customerFullName: document.getElementById('customerFullName').value,
-                    customerPhone: document.getElementById('customerPhone').value,
-                    customerCity: document.getElementById('customerCity').value,
-                    orderMessage: document.getElementById('orderMessage').value,
+                    customerFullName: cName,
+                    customerPhone: cPhone,
+                    customerCity: cCity,
+                    orderMessage: cMessage,
                     userId: currentUser.uid,
                     items: shoppingCart,
                     totalSum: total,
@@ -824,17 +862,34 @@
                     createdAt: new Date().toISOString()
                 };
 
+                // 1. Зберігаємо замовлення в базі даних
                 await addDoc(collection(db, 'orders'), customerData);
 
-                const token = '8702351008:AAEes2QuyIShUtv3ScZrX5YZ5PfQLm18o6A';
-                const chat = '372259859';
-                const telegramMsg = `🔔 НОВЕ ЗАМОВЛЕННЯ №${formattedNumber}!\n👤 Клієнт: ${customerData.customerFullName}\n📞 Тел: ${customerData.customerPhone}\n🏙 Місто: ${customerData.customerCity}\n💰 Сума: ${total} грн\n\nСклад:\n${shoppingCart.map(i => `• ${i.name} (${i.quantity} ${i.unit})`).join('\n')}`;
-                
-                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: chat, text: telegramMsg })
-                }).catch(err => console.warn('Помилка відправки в Telegram', err));
+                // 2. Отримуємо токени Telegram з бази даних
+                let tgBotToken = '';
+                let tgChatId = '';
+                try {
+                    const tgDoc = await getDoc(doc(db, 'settings', 'telegram'));
+                    if (tgDoc.exists()) {
+                        tgBotToken = tgDoc.data().botToken;
+                        tgChatId = tgDoc.data().chatId;
+                    }
+                } catch (err) {
+                    console.warn("Не вдалося отримати налаштування Telegram", err);
+                }
+
+                // 3. Відправляємо повідомлення, якщо токени налаштовані
+                if (tgBotToken && tgChatId) {
+                    const telegramMsg = `🔔 НОВЕ ЗАМОВЛЕННЯ №${formattedNumber}!\n👤 Клієнт: ${cName}\n📞 Тел: ${cPhone}\n🏙 Місто: ${cCity}\n💰 Сума: ${total} грн\n\nСклад:\n${shoppingCart.map(i => `• ${i.name} (${i.quantity} ${i.unit})`).join('\n')}`;
+                    
+                    await fetch(`https://api.telegram.org/bot${tgBotToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: tgChatId, text: telegramMsg })
+                    }).catch(err => console.warn('Помилка відправки в Telegram', err));
+                } else {
+                    console.log("Повідомлення в Telegram не відправлено (токени не вказано в Адмін-панелі).");
+                }
 
                 shoppingCart = [];
                 saveCart();
