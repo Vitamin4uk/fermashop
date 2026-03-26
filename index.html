@@ -231,6 +231,24 @@
             box-sizing: border-box;
         }
 
+        select.status-select {
+            background-color: var(--bgColor);
+            color: var(--textColor);
+            border: 1px solid var(--borderColor);
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select.status-select:focus {
+            border-color: var(--primaryColor);
+        }
+
+        select.status-select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .badge {
             background: red;
             color: white;
@@ -284,7 +302,7 @@
         </div>
     </div>
 
-    <!-- Модалка Оформлення замовлення (Доступна тільки для зареєстрованих) -->
+    <!-- Модалка Оформлення замовлення -->
     <div id="checkoutOverlay" class="overlay">
         <div class="modal">
             <h2>Оформлення замовлення</h2>
@@ -306,6 +324,12 @@
             <form id="authForm" class="contact-form">
                 <input type="email" id="authUserEmail" placeholder="Email" required>
                 <input type="password" id="authUserPassword" placeholder="Пароль" required minlength="6">
+                
+                <div id="registerFields" style="display: none; flex-direction: column; gap: 0.8rem;">
+                    <input type="text" id="authFullName" placeholder="Прізвище та ім'я">
+                    <input type="tel" id="authPhone" placeholder="Номер телефону">
+                </div>
+
                 <button type="submit" id="authSubmitBtn" style="background-color: var(--primaryColor); color: white;">Увійти</button>
                 <p id="toggleAuthModeBtn" style="text-align: center; cursor: pointer; text-decoration: underline; font-size: 0.9rem;">Немає акаунту? Реєстрація</p>
             </form>
@@ -327,17 +351,29 @@
     <!-- Модалка Адмінки -->
     <div id="adminOverlay" class="overlay">
         <div class="modal" style="max-width: 650px;">
-            <h2>Управління складом</h2>
+            <h2>Управління фермою</h2>
+            
+            <!-- Секція замовлень для адміна -->
+            <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--borderColor);">
+                <h3 style="margin-top:0">Всі замовлення клієнтів</h3>
+                <div id="adminOrdersList" style="max-height: 300px; overflow-y: auto;">
+                    <p>Завантаження...</p>
+                </div>
+            </div>
+
+            <!-- Секція додавання товару -->
             <form id="addProductForm" class="contact-form" style="margin-bottom: 2rem; padding: 1rem; border: 1px dashed var(--borderColor);">
                 <h3 style="margin-top:0">Новий товар</h3>
                 <input type="text" id="addProductName" placeholder="Назва" required>
                 <input type="number" id="addProductPrice" placeholder="Ціна (грн)" required>
                 <input type="text" id="addProductUnit" placeholder="Одиниця (кг, шт, дес)" required>
                 <input type="url" id="addProductImage" placeholder="URL зображення">
-                <button type="submit" style="background-color: #f57c00; color: white;">Опублікувати</button>
+                <button type="submit" style="background-color: var(--accentColor); color: white;">Опублікувати</button>
             </form>
+            
+            <!-- Список товарів -->
             <h3>Список товарів</h3>
-            <div id="adminProductsList"></div>
+            <div id="adminProductsList" style="max-height: 250px; overflow-y: auto;"></div>
             <button id="closeAdminBtn" style="width: 100%; margin-top: 1rem;">Закрити</button>
         </div>
     </div>
@@ -348,7 +384,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         const ADMIN_EMAIL = 'mostovyi.zsu@gmail.com'; 
@@ -369,11 +405,9 @@
         let globalProducts = [];
         let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
 
-        // Функції закриття модалок
         const overlays = ['cartOverlay', 'authOverlay', 'cabinetOverlay', 'adminOverlay', 'checkoutOverlay'];
         const closeAllModals = () => overlays.forEach(id => document.getElementById(id).classList.remove('active'));
 
-        // Відстеження авторизації
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             const authBtn = document.getElementById('authBtn');
@@ -392,13 +426,20 @@
             renderProducts();
         });
 
-        // Завантаження товарів
         async function loadProducts() {
             try {
                 const snap = await getDocs(collection(db, 'products'));
                 globalProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderProducts();
-            } catch (e) { console.error("Помилка завантаження:", e); }
+            } catch (e) { 
+                console.error("Помилка завантаження:", e); 
+                const grid = document.getElementById('productsGrid');
+                if (e.code === 'permission-denied') {
+                    grid.innerHTML = '<p style="color:red; grid-column: 1/-1;">Помилка доступу до бази. Оновіть Firebase Rules!</p>';
+                } else {
+                    grid.innerHTML = '<p>Помилка завантаження даних.</p>';
+                }
+            }
         }
 
         function renderProducts() {
@@ -421,7 +462,6 @@
             `).join('');
         }
 
-        // --- Управління кошиком ---
         function saveCart() {
             localStorage.setItem('farmCart', JSON.stringify(shoppingCart));
             updateCartUI();
@@ -461,7 +501,7 @@
             }
         }
 
-        // --- ОСОБИСТИЙ КАБІНЕТ ---
+        // --- ОСОБИСТИЙ КАБІНЕТ (для клієнта) ---
         async function loadCabinet() {
             const container = document.getElementById('orderHistoryContainer');
             container.innerHTML = "<p>Завантаження історії...</p>";
@@ -478,9 +518,14 @@
 
                 container.innerHTML = orders.map(order => `
                     <div class="order-history-card">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:5px">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items: center;">
                             <strong>Замовлення №${order.orderNumber || '---'}</strong>
-                            <small>${new Date(order.createdAt).toLocaleDateString()}</small>
+                            <span style="padding: 0.2rem 0.6rem; border-radius: 4px; background-color: #e8f5e9; border: 1px solid var(--primaryColor); color: var(--primaryColor); font-weight: bold; font-size: 0.85rem;">
+                                ${order.status || 'Нове'}
+                            </span>
+                        </div>
+                        <div style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #666;">
+                            Створено: ${new Date(order.createdAt).toLocaleDateString()}
                         </div>
                         <details class="order-details">
                             <summary>Деталі замовлення (${order.totalSum} грн)</summary>
@@ -497,7 +542,52 @@
             } catch (e) { container.innerHTML = "<p>Помилка завантаження.</p>"; }
         }
 
-        // --- АДМІН-ПАНЕЛЬ ---
+        // --- АДМІН-ПАНЕЛЬ (Всі замовлення та товари) ---
+        async function loadAdminOrders() {
+            const container = document.getElementById('adminOrdersList');
+            container.innerHTML = "<p>Завантаження замовлень...</p>";
+            try {
+                // Для адміна завантажуємо ВСІ замовлення
+                const snap = await getDocs(collection(db, 'orders'));
+                const orders = snap.docs.map(d => ({id: d.id, ...d.data()}))
+                                    .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                if (orders.length === 0) {
+                    container.innerHTML = "<p>Замовлень немає.</p>";
+                    return;
+                }
+
+                container.innerHTML = orders.map(order => `
+                    <div class="order-history-card" style="border-left: 4px solid var(--primaryColor);">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items: center;">
+                            <strong>№${order.orderNumber || '---'}</strong>
+                            <select class="status-select" data-id="${order.id}" style="padding: 0.2rem; border-radius: 4px; border: 1px solid var(--primaryColor);">
+                                <option value="Нове" ${order.status === 'Нове' ? 'selected' : ''}>Нове</option>
+                                <option value="В обробці" ${order.status === 'В обробці' ? 'selected' : ''}>В обробці</option>
+                                <option value="Відправлено" ${order.status === 'Відправлено' ? 'selected' : ''}>Відправлено</option>
+                                <option value="Отримано" ${order.status === 'Отримано' ? 'selected' : ''}>Отримано</option>
+                                <option value="Скасовано" ${order.status === 'Скасовано' ? 'selected' : ''}>Скасовано</option>
+                            </select>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
+                            Клієнт: ${order.customerFullName} (${order.customerPhone}) | Сума: <b>${order.totalSum} грн</b><br>
+                            ${new Date(order.createdAt).toLocaleString()}
+                        </div>
+                        <details class="order-details">
+                            <summary>Товари</summary>
+                            <div style="padding-top:5px; border-top:1px solid #ddd; font-size:0.85rem">
+                                ${order.items.map(i => `<div>${i.name} — ${i.quantity} ${i.unit}</div>`).join('')}
+                                <div style="margin-top:5px;">Місто: ${order.customerCity}</div>
+                            </div>
+                        </details>
+                    </div>
+                `).join('');
+            } catch (e) { 
+                console.error(e);
+                container.innerHTML = "<p>Помилка завантаження замовлень.</p>"; 
+            }
+        }
+
         function renderAdminList() {
             const list = document.getElementById('adminProductsList');
             list.innerHTML = globalProducts.map(p => `
@@ -511,11 +601,45 @@
             `).join('');
         }
 
-        // --- ОБРОБКА КЛІКІВ ---
+        // --- ГЛОБАЛЬНА ОБРОБКА ПОДІЙ ---
+        
+        // Надійна зміна статусу замовлення (для селектів в адмінці)
+        document.body.addEventListener('change', async (e) => {
+            const target = e.target;
+            
+            // Запобіжник: перевіряємо чи є у елемента класи (уникаємо TypeError на SVG чи TextNodes)
+            if (target && target.classList && target.classList.contains('status-select')) {
+                const orderId = target.getAttribute('data-id');
+                const newStatus = target.value;
+                
+                if (!orderId) {
+                    console.error("Помилка: Не знайдено ID замовлення.");
+                    return;
+                }
+
+                try {
+                    // Блокуємо селект на час запиту, щоб уникнути конфліктів та спаму кліків
+                    target.disabled = true;
+                    
+                    await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+                    
+                    // Візуальне підтвердження збереження
+                    target.style.backgroundColor = "#e8f5e9";
+                    setTimeout(() => { target.style.backgroundColor = ""; }, 1000);
+                } catch (err) {
+                    console.error("Помилка Firestore при зміні статусу:", err);
+                    alert("Помилка доступу (Permission Denied)!\n\nЩоб змінювати статуси, перейдіть у Firebase Console -> Firestore Database -> Rules і додайте дозвіл на 'update' для колекції 'orders', як описано в інструкції.");
+                } finally {
+                    target.disabled = false;
+                }
+            }
+        });
+
         document.body.addEventListener('click', async (e) => {
             const target = e.target;
+            if (!target.closest) return;
 
-            // Кліки по кнопках "В кошик"
+            // В кошик
             const addBtn = target.closest('.add-btn');
             if (addBtn) {
                 const id = addBtn.dataset.id;
@@ -527,7 +651,7 @@
                 return;
             }
 
-            // Видалення з кошика
+            // Видалити з кошика
             const removeBtn = target.closest('.remove-item');
             if (removeBtn) {
                 shoppingCart = shoppingCart.filter(x => x.id !== removeBtn.dataset.id);
@@ -542,9 +666,11 @@
                 const id = editPriceBtn.dataset.id;
                 const newP = prompt('Вкажіть нову ціну:');
                 if (newP !== null && newP !== "" && !isNaN(newP)) {
-                    await updateDoc(doc(db, 'products', id), { price: Number(newP) });
-                    await loadProducts();
-                    renderAdminList();
+                    try {
+                        await updateDoc(doc(db, 'products', id), { price: Number(newP) });
+                        await loadProducts();
+                        renderAdminList();
+                    } catch (err) { alert("Помилка! Перевірте права Firebase Rules."); }
                 }
                 return;
             }
@@ -554,9 +680,11 @@
             if (deleteBtn) {
                 const id = deleteBtn.dataset.id;
                 if (confirm('Видалити цей товар з бази назавжди?')) {
-                    await deleteDoc(doc(db, 'products', id));
-                    await loadProducts();
-                    renderAdminList();
+                    try {
+                        await deleteDoc(doc(db, 'products', id));
+                        await loadProducts();
+                        renderAdminList();
+                    } catch (err) { alert("Помилка! Перевірте права Firebase Rules."); }
                 }
                 return;
             }
@@ -565,7 +693,13 @@
             if (target.id === 'cartBtn') { renderCartModal(); document.getElementById('cartOverlay').classList.add('active'); }
             if (target.id === 'authBtn') currentUser ? signOut(auth) : document.getElementById('authOverlay').classList.add('active');
             if (target.id === 'cabinetBtn') { loadCabinet(); document.getElementById('cabinetOverlay').classList.add('active'); }
-            if (target.id === 'adminBtn') { renderAdminList(); document.getElementById('adminOverlay').classList.add('active'); }
+            
+            if (target.id === 'adminBtn') { 
+                renderAdminList(); 
+                loadAdminOrders(); // Завантажуємо замовлення при відкритті
+                document.getElementById('adminOverlay').classList.add('active'); 
+            }
+            
             if (target.classList.contains('open-auth')) document.getElementById('authOverlay').classList.add('active');
             
             // Кнопки закриття
@@ -584,7 +718,7 @@
                 } else {
                     document.getElementById('checkoutOverlay').classList.add('active');
                     if (currentUser.email) {
-                        const emailInput = document.getElementById('authUserEmail'); // Це для логіну, в чекауті нема емейла окремо у формі за завданням, але currentUser.email доступний
+                        const emailInput = document.getElementById('authUserEmail'); 
                     }
                 }
             }
@@ -603,10 +737,12 @@
                 imageUrl: document.getElementById('addProductImage').value,
                 createdAt: new Date().toISOString()
             };
-            await addDoc(collection(db, 'products'), data);
-            await loadProducts();
-            renderAdminList();
-            e.target.reset();
+            try {
+                await addDoc(collection(db, 'products'), data);
+                await loadProducts();
+                renderAdminList();
+                e.target.reset();
+            } catch (err) { alert("Помилка додавання! Перевірте права доступу у Firebase."); }
         });
 
         // Авторизація
@@ -616,6 +752,14 @@
             document.getElementById('authTitle').textContent = isLogin ? 'Вхід' : 'Реєстрація';
             document.getElementById('authSubmitBtn').textContent = isLogin ? 'Увійти' : 'Створити акаунт';
             document.getElementById('toggleAuthModeBtn').textContent = isLogin ? 'Немає акаунту? Реєстрація' : 'Вже є акаунт? Увійти';
+            
+            const regFields = document.getElementById('registerFields');
+            const authFullName = document.getElementById('authFullName');
+            const authPhone = document.getElementById('authPhone');
+            
+            regFields.style.display = isLogin ? 'none' : 'flex';
+            authFullName.required = !isLogin;
+            authPhone.required = !isLogin;
         };
 
         document.getElementById('authForm').addEventListener('submit', async (e) => {
@@ -623,13 +767,38 @@
             const email = document.getElementById('authUserEmail').value;
             const pass = document.getElementById('authUserPassword').value;
             try {
-                if (isLogin) await signInWithEmailAndPassword(auth, email, pass);
-                else await createUserWithEmailAndPassword(auth, email, pass);
+                if (isLogin) {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                } else {
+                    const fullName = document.getElementById('authFullName').value;
+                    const phone = document.getElementById('authPhone').value;
+                    const formattedUserNum = Math.floor(1000 + Math.random() * 9000).toString();
+
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                    
+                    try {
+                        await setDoc(doc(db, 'users', userCredential.user.uid), {
+                            userNumber: formattedUserNum,
+                            fullName: fullName,
+                            phone: phone,
+                            email: userCredential.user.email,
+                            createdAt: new Date().toISOString(),
+                            role: 'customer'
+                        });
+                    } catch (fsErr) {
+                        console.warn("Користувача створено, але не збережено в Firestore.", fsErr);
+                    }
+                }
                 closeAllModals();
-            } catch (err) { alert("Помилка авторизації. Перевірте дані."); }
+                e.target.reset(); 
+                if (!isLogin) document.getElementById('toggleAuthModeBtn').onclick();
+
+            } catch (err) { 
+                alert("Помилка авторизації. Перевірте дані."); 
+            }
         });
 
-        // Оформлення замовлення (Submit з нумерацією)
+        // Оформлення замовлення
         document.getElementById('orderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (shoppingCart.length === 0) return;
@@ -639,13 +808,9 @@
             btn.textContent = "Обробка...";
 
             try {
-                // ГЕНЕРАЦІЯ НОМЕРА ЗАМОВЛЕННЯ
-                // Отримуємо всі замовлення, щоб дізнатися кількість
-                const ordersSnap = await getDocs(collection(db, 'orders'));
-                const nextNumber = ordersSnap.size + 1;
-                const formattedNumber = nextNumber.toString().padStart(6, '0');
-
+                const formattedNumber = Math.floor(100000 + Math.random() * 900000).toString();
                 const total = shoppingCart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+                
                 const customerData = {
                     orderNumber: formattedNumber,
                     customerFullName: document.getElementById('customerFullName').value,
@@ -655,13 +820,12 @@
                     userId: currentUser.uid,
                     items: shoppingCart,
                     totalSum: total,
+                    status: 'Нове', 
                     createdAt: new Date().toISOString()
                 };
 
-                // 1. Зберігаємо в Firebase
                 await addDoc(collection(db, 'orders'), customerData);
 
-                // 2. Відправляємо в Telegram
                 const token = '8702351008:AAEes2QuyIShUtv3ScZrX5YZ5PfQLm18o6A';
                 const chat = '372259859';
                 const telegramMsg = `🔔 НОВЕ ЗАМОВЛЕННЯ №${formattedNumber}!\n👤 Клієнт: ${customerData.customerFullName}\n📞 Тел: ${customerData.customerPhone}\n🏙 Місто: ${customerData.customerCity}\n💰 Сума: ${total} грн\n\nСклад:\n${shoppingCart.map(i => `• ${i.name} (${i.quantity} ${i.unit})`).join('\n')}`;
@@ -670,7 +834,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chat_id: chat, text: telegramMsg })
-                });
+                }).catch(err => console.warn('Помилка відправки в Telegram', err));
 
                 shoppingCart = [];
                 saveCart();
@@ -685,16 +849,15 @@
                 console.error(err);
                 btn.disabled = false;
                 btn.textContent = "Помилка! Спробуйте ще раз";
+                alert("Помилка відправки замовлення.");
             }
         });
 
-        // Перемикач теми
         document.getElementById('themeToggleBtn').onclick = () => {
             const html = document.documentElement;
             html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
         };
 
-        // Запуск
         loadProducts();
         updateCartUI();
     </script>
