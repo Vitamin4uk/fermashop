@@ -140,11 +140,22 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            transition: transform 0.2s;
+            transition: transform 0.2s, opacity 0.3s;
+            position: relative;
         }
 
         .product-card:hover {
             transform: translateY(-5px);
+        }
+
+        /* Стиль для товарів, яких немає в наявності */
+        .product-card.out-of-stock {
+            opacity: 0.6;
+            filter: grayscale(80%);
+        }
+        
+        .product-card.out-of-stock:hover {
+            transform: none;
         }
 
         .product-img {
@@ -177,6 +188,11 @@
             font-weight: bold;
             border-radius: 4px;
         }
+        
+        .buyBtn:disabled {
+            background-color: #9e9e9e;
+            cursor: not-allowed;
+        }
 
         .auth-required-btn {
             margin-top: auto;
@@ -208,6 +224,18 @@
             transform: scale(1.03);
             z-index: 1;
         }
+
+        /* Анімація завантаження (Спінер) */
+        .loader {
+            border: 4px solid var(--borderColor);
+            border-top: 4px solid var(--primaryColor);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Модальні вікна */
         .overlay {
@@ -267,7 +295,7 @@
             gap: 0.8rem;
         }
 
-        input, textarea {
+        input, textarea, select {
             padding: 0.7rem;
             border: 1px solid var(--borderColor);
             background-color: var(--bgColor);
@@ -278,12 +306,27 @@
         }
 
         select.status-select {
-            background-color: var(--bgColor);
-            color: var(--textColor);
-            border: 1px solid var(--borderColor);
-            outline: none;
             cursor: pointer;
             transition: border-color 0.2s;
+            border-radius: 4px;
+            border: 1px solid var(--primaryColor);
+            font-weight: 500;
+            background-color: var(--bgColor);
+            color: var(--textColor);
+            /* Мобільний вигляд (більший) */
+            padding: 0.6rem 1rem;
+            font-size: 1.05rem;
+            min-width: 160px;
+        }
+
+        @media (min-width: 768px) {
+            select.status-select {
+                /* Вигляд на комп'ютері (вужчий) */
+                padding: 0.2rem 0.5rem;
+                font-size: 0.9rem;
+                min-width: 120px;
+                width: auto;
+            }
         }
 
         select.status-select:focus {
@@ -305,6 +348,47 @@
             margin-left: 2px;
         }
 
+        .qty-btn {
+            border: none;
+            background: var(--cardBg);
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: var(--textColor);
+            transition: background 0.2s;
+        }
+
+        .qty-btn:hover {
+            background: var(--borderColor);
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background-color: var(--primaryColor);
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s, transform 0.3s;
+            font-weight: 500;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         footer {
             padding: 2rem;
             text-align: center;
@@ -318,7 +402,6 @@
     <header>
         <div class="logo">Локальна Ферма</div>
         
-        <!-- Новий блок навігації -->
         <nav class="main-nav">
             <a href="#" id="navShop" class="active">Магазин</a>
             <a href="#" id="navFarm">Наше господарство</a>
@@ -338,21 +421,20 @@
         <div id="view-shop">
             <section id="products">
                 <h2>Свіжі пропозиції</h2>
+
                 <div id="productsGrid" class="gallery-grid">
-                    <p>Завантаження продуктів...</p>
+                    <div class="loader"></div>
                 </div>
             </section>
         </div>
 
-        <!-- Обгортка для нового розділу Галереї -->
+        <!-- Обгортка для Галереї -->
         <div id="view-farm" style="display: none;">
             <section id="farm-gallery">
                 <h2 style="text-align: center; color: var(--primaryColor); font-size: 2rem;">Наше господарство</h2>
                 <p style="text-align: center; color: var(--textColor); max-width: 800px; margin: 0 auto; line-height: 1.6;">
                     Ми пишаємося тим, що створюємо екологічно чисті та корисні продукти. Наша ферма — це місце, де любов до природи поєднується з відповідальним підходом до тваринництва та землеробства. Переконайтеся самі!
                 </p>
-                
-                <!-- Галерея фотографій -->
                 <div class="photo-grid">
                     <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Поле на нашій фермі" loading="lazy">
                     <img src="https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Наші корівки на вільному випасі" loading="lazy">
@@ -418,13 +500,13 @@
         <div class="modal" style="max-width: 600px;">
             <h2>Мій кабінет</h2>
             <div id="orderHistoryContainer">
-                <p>Завантаження історії замовлень...</p>
+                <div class="loader"></div>
             </div>
             <button id="closeCabinetBtn" style="width: 100%; margin-top: 1rem;">Закрити</button>
         </div>
     </div>
 
-    <!-- Модалка Адмінки -->
+        <!-- Модалка Адмінки -->
     <div id="adminOverlay" class="overlay">
         <div class="modal" style="max-width: 650px;">
             <h2>Управління фермою</h2>
@@ -432,8 +514,8 @@
             <!-- Секція замовлень для адміна -->
             <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--borderColor);">
                 <h3 style="margin-top:0">Всі замовлення клієнтів</h3>
-                <div id="adminOrdersList" style="max-height: 300px; overflow-y: auto;">
-                    <p>Завантаження...</p>
+                <div id="adminOrdersList" style="max-height: 450px; overflow-y: auto; padding-right: 5px;">
+                    <div class="loader"></div>
                 </div>
             </div>
 
@@ -441,6 +523,7 @@
             <form id="addProductForm" class="contact-form" style="margin-bottom: 2rem; padding: 1rem; border: 1px dashed var(--borderColor);">
                 <h3 style="margin-top:0">Новий товар</h3>
                 <input type="text" id="addProductName" placeholder="Назва" required maxlength="100">
+
                 <input type="number" id="addProductPrice" placeholder="Ціна (грн)" required min="0.01" step="0.01">
                 <input type="text" id="addProductUnit" placeholder="Одиниця (кг, шт, дес)" required maxlength="20">
                 <input type="url" id="addProductImage" placeholder="URL зображення">
@@ -457,11 +540,53 @@
             </form>
             
             <!-- Список товарів -->
-            <h3>Список товарів</h3>
+            <h3>Керування наявністю та цінами</h3>
             <div id="adminProductsList" style="max-height: 250px; overflow-y: auto;"></div>
             <button id="closeAdminBtn" style="width: 100%; margin-top: 1rem;">Закрити</button>
         </div>
     </div>
+
+    <!-- Модалка редагування товару -->
+    <div id="editProductOverlay" class="overlay" style="z-index: 1010;">
+        <div class="modal" style="max-width: 350px; text-align: center;">
+            <h3 style="margin-top: 0;">Редагувати товар</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="editProductNameInput" placeholder="Назва товару" maxlength="100">
+                <input type="number" id="editProductPriceInput" placeholder="Ціна (грн)" min="0.01" step="0.01">
+                <input type="text" id="editProductUnitInput" placeholder="Одиниця (кг, шт, дес)" maxlength="20">
+                <input type="hidden" id="editProductId">
+            </div>
+            <div style="display:flex; gap:10px; margin-top:1.5rem;">
+                <button id="saveEditProductBtn" style="background-color: var(--primaryColor); color: white; flex:1;">Зберегти</button>
+                <button id="cancelEditProductBtn" style="flex:1;">Скасувати</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка підтвердження видалення -->
+    <div id="confirmDeleteOverlay" class="overlay" style="z-index: 1010;">
+        <div class="modal" style="max-width: 300px; text-align: center;">
+            <h3 style="margin-top: 0; color: #c62828;">Видалити товар?</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 1.5rem;">Цю дію неможливо скасувати.</p>
+            <input type="hidden" id="deleteProductId">
+            <div style="display:flex; gap:10px;">
+                <button id="confirmDeleteBtn" style="background-color: #c62828; color: white; flex:1;">Видалити</button>
+                <button id="cancelDeleteBtn" style="flex:1;">Скасувати</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка для повідомлень (заміна alert) -->
+    <div id="alertOverlay" class="overlay" style="z-index: 2000;">
+        <div class="modal" style="max-width: 400px; text-align: center;">
+            <h3 id="alertTitle" style="margin-top: 0;">Повідомлення</h3>
+            <p id="alertMessage" style="margin-bottom: 1.5rem; line-height: 1.5;"></p>
+            <button id="closeAlertBtn" style="background-color: var(--primaryColor); color: white; width: 100%;">Зрозуміло</button>
+        </div>
+    </div>
+
+    <!-- Контейнер для спливаючих повідомлень -->
+    <div id="toast-container"></div>
 
     <footer>
         <p>&copy; 2026 Локальна Ферма. Свіжі продукти прямо до вашого столу.</p>
@@ -470,10 +595,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-        // Додано sendEmailVerification
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // Запобіжник для запобігання XSS (Cross-Site Scripting) ін'єкцій
+        // Запобіжник для запобігання XSS
         const escapeHTML = (str) => {
             if (typeof str !== 'string') return str;
             return str.replace(/[&<>'"]/g, 
@@ -487,7 +611,6 @@
             );
         };
 
-        const ADMIN_EMAIL = 'mostovyi.zsu@gmail.com'; 
         const firebaseConfig = {
             apiKey: "AIzaSyCdCvqIiSymeCDJFsEmP2qxce-tO5dhmVQ",
             authDomain: "farmshop-d52e3.firebaseapp.com",
@@ -502,6 +625,7 @@
         const auth = getAuth(app);
 
         let currentUser = null;
+        let currentUserProfile = null;
         let globalProducts = [];
         let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
 
@@ -517,23 +641,34 @@
             if (user) {
                 authBtn.textContent = 'Вийти';
                 cabinetBtn.style.display = 'block';
-                if (user.email === ADMIN_EMAIL) adminBtn.style.display = 'block';
+                
+                getDoc(doc(db, 'users', user.uid)).then(docSnap => {
+                    if (docSnap.exists()) {
+                        currentUserProfile = docSnap.data();
+                        // Відображаємо кнопку адміна, якщо у базі даних є роль 'admin'
+                        if (currentUserProfile.role === 'admin') {
+                            adminBtn.style.display = 'block';
+                        }
+                    }
+                }).catch(e => console.warn("Не вдалося завантажити профіль", e));
             } else {
                 authBtn.textContent = 'Увійти';
                 adminBtn.style.display = 'none';
                 cabinetBtn.style.display = 'none';
+                currentUserProfile = null;
             }
             renderProducts();
         });
 
         async function loadProducts() {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '<div class="loader"></div>';
             try {
                 const snap = await getDocs(collection(db, 'products'));
                 globalProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderProducts();
             } catch (e) { 
                 console.error("Помилка завантаження:", e); 
-                const grid = document.getElementById('productsGrid');
                 if (e.code === 'permission-denied') {
                     grid.innerHTML = '<p style="color:red; grid-column: 1/-1;">Помилка доступу до бази. Оновіть Firebase Rules!</p>';
                 } else {
@@ -544,24 +679,37 @@
 
         function renderProducts() {
             const grid = document.getElementById('productsGrid');
+            
             if (globalProducts.length === 0) {
-                grid.innerHTML = "<p>Асортимент оновлюється...</p>";
+                grid.innerHTML = "<p style='grid-column: 1/-1;'>Асортимент оновлюється...</p>";
                 return;
             }
+            
             grid.innerHTML = globalProducts.map(p => {
                 const safeName = escapeHTML(p.name);
                 const safeUnit = escapeHTML(p.unit);
                 const safeImg = p.imageUrl && p.imageUrl.startsWith('http') ? escapeHTML(p.imageUrl) : 'https://via.placeholder.com/300?text=Ферма';
                 
+                // Перевіряємо наявність товару (якщо поле відсутнє, вважаємо що є)
+                const isOutOfStock = p.inStock === false; 
+
+                // Формуємо кнопку покупки залежно від статусу авторизації та наявності товару
+                let actionButton = '';
+                if (isOutOfStock) {
+                    actionButton = `<button disabled class="buyBtn" style="background-color: #9e9e9e;">Немає в наявності</button>`;
+                } else if (currentUser) {
+                    actionButton = `<button class="buyBtn add-btn" data-id="${escapeHTML(p.id)}">В кошик</button>`;
+                } else {
+                    actionButton = `<button class="auth-required-btn open-auth">Увійти для покупки</button>`;
+                }
+
                 return `
-                <div class="product-card">
+                <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
                     <img src="${safeImg}" class="product-img" loading="lazy" alt="${safeName}">
                     <div class="product-info">
                         <h3 style="margin:0 0 5px 0">${safeName}</h3>
                         <p class="price">${p.price} грн / ${safeUnit}</p>
-                        ${currentUser 
-                            ? `<button class="buyBtn add-btn" data-id="${escapeHTML(p.id)}">В кошик</button>` 
-                            : `<button class="auth-required-btn open-auth">Увійти для покупки</button>`}
+                        ${actionButton}
                     </div>
                 </div>
             `}).join('');
@@ -579,6 +727,25 @@
             badge.style.display = count > 0 ? 'inline' : 'none';
         }
 
+        function customAlert(message, title = "Повідомлення") {
+            document.getElementById('alertTitle').textContent = title;
+            document.getElementById('alertMessage').textContent = message;
+            document.getElementById('alertOverlay').classList.add('active');
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         function renderCartModal() {
             const container = document.getElementById('cartItemsContainer');
             const totalUI = document.getElementById('cartTotalSum');
@@ -593,11 +760,16 @@
                         <div class="cart-item">
                             <div style="flex:1">
                                 <strong>${escapeHTML(item.name)}</strong><br>
-                                <small>${item.price} грн x ${item.quantity}</small>
+                                <small>${item.price} грн за 1 ${escapeHTML(item.unit)}</small>
                             </div>
                             <div style="display:flex; gap:10px; align-items:center">
-                                <span>${item.price * item.quantity} грн</span>
-                                <button class="remove-item remove-btn" data-id="${escapeHTML(item.id)}">✖</button>
+                                <div style="display:flex; align-items:center; border: 1px solid var(--borderColor); border-radius:4px; overflow:hidden;">
+                                    <button class="qty-btn decrease-qty" data-id="${escapeHTML(item.id)}">-</button>
+                                    <span style="padding: 0 10px; font-weight: bold;">${item.quantity}</span>
+                                    <button class="qty-btn increase-qty" data-id="${escapeHTML(item.id)}">+</button>
+                                </div>
+                                <span style="min-width: 60px; text-align:right;">${item.price * item.quantity} грн</span>
+                                <button class="remove-item remove-btn" data-id="${escapeHTML(item.id)}" style="margin-left:5px;">✖</button>
                             </div>
                         </div>
                     `;
@@ -606,10 +778,9 @@
             }
         }
 
-        // --- ОСОБИСТИЙ КАБІНЕТ (для клієнта) ---
         async function loadCabinet() {
             const container = document.getElementById('orderHistoryContainer');
-            container.innerHTML = "<p>Завантаження історії...</p>";
+            container.innerHTML = '<div class="loader"></div>';
             try {
                 const q = query(collection(db, 'orders'), where("userId", "==", currentUser.uid));
                 const snap = await getDocs(q);
@@ -648,10 +819,9 @@
             } catch (e) { container.innerHTML = "<p>Помилка завантаження.</p>"; }
         }
 
-        // --- АДМІН-ПАНЕЛЬ (Всі замовлення та товари) ---
         async function loadAdminOrders() {
             const container = document.getElementById('adminOrdersList');
-            container.innerHTML = "<p>Завантаження замовлень...</p>";
+            container.innerHTML = '<div class="loader"></div>';
             try {
                 const snap = await getDocs(collection(db, 'orders'));
                 const orders = snap.docs.map(d => ({id: d.id, ...d.data()}))
@@ -664,9 +834,9 @@
 
                 container.innerHTML = orders.map(order => `
                     <div class="order-history-card" style="border-left: 4px solid var(--primaryColor);">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items: center;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <strong>№${escapeHTML(order.orderNumber) || '---'}</strong>
-                            <select class="status-select" data-id="${escapeHTML(order.id)}" style="padding: 0.2rem; border-radius: 4px; border: 1px solid var(--primaryColor);">
+                            <select class="status-select" data-id="${escapeHTML(order.id)}">
                                 <option value="Нове" ${order.status === 'Нове' ? 'selected' : ''}>Нове</option>
                                 <option value="В обробці" ${order.status === 'В обробці' ? 'selected' : ''}>В обробці</option>
                                 <option value="Відправлено" ${order.status === 'Відправлено' ? 'selected' : ''}>Відправлено</option>
@@ -698,21 +868,31 @@
 
         function renderAdminList() {
             const list = document.getElementById('adminProductsList');
-            list.innerHTML = globalProducts.map(p => `
+            list.innerHTML = globalProducts.map(p => {
+                const isStock = p.inStock !== false; // За замовчуванням true
+                return `
                 <div class="admin-item">
-                    <span style="flex:1"><strong>${escapeHTML(p.name)}</strong> (${p.price} грн)</span>
-                    <div style="display:flex; gap:5px">
-                        <button class="admin-edit-price" data-id="${escapeHTML(p.id)}">Ціна</button>
-                        <button class="admin-delete remove-btn" data-id="${escapeHTML(p.id)}">🗑</button>
+                    <span style="flex:1">
+                        <strong>${escapeHTML(p.name)}</strong><br>
+                        ${p.price} грн
+                    </span>
+                    <div style="display:flex; gap:5px; align-items: center;">
+                        <button class="admin-toggle-stock" data-id="${escapeHTML(p.id)}" data-stock="${isStock}" style="background-color: ${isStock ? '#e8f5e9' : '#ffebee'}; border-color: ${isStock ? '#4caf50' : '#f44336'}; color: ${isStock ? '#2e7d32' : '#c62828'};">
+                            ${isStock ? '✅ Є' : '❌ Немає'}
+                        </button>
+                        <button class="admin-edit-product" data-id="${escapeHTML(p.id)}" title="Редагувати товар">✏️</button>
+                        <button class="admin-delete remove-btn" data-id="${escapeHTML(p.id)}" title="Видалити">🗑</button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // --- ГЛОБАЛЬНА ОБРОБКА ПОДІЙ ---
         
         document.body.addEventListener('change', async (e) => {
-            const target = e.target;
+            let target = e.target;
+            if (target && target.nodeType === 3) target = target.parentNode;
+            
             if (target && target.classList && target.classList.contains('status-select')) {
                 const orderId = target.getAttribute('data-id');
                 const newStatus = target.value;
@@ -725,7 +905,7 @@
                     setTimeout(() => { target.style.backgroundColor = ""; }, 1000);
                 } catch (err) {
                     console.error(err);
-                    alert("Помилка доступу (Permission Denied)! Перевірте Firebase Rules.");
+                    customAlert("Помилка доступу (Permission Denied)! Перевірте Firebase Rules.", "Помилка");
                 } finally {
                     target.disabled = false;
                 }
@@ -733,8 +913,14 @@
         });
 
         document.body.addEventListener('click', async (e) => {
-            const target = e.target;
-            if (!target.closest) return;
+            let target = e.target;
+            
+            // Запобіжник: якщо клік припав на текстовий вузол (наприклад, емодзі або текст в кнопці)
+            if (target && target.nodeType === 3) {
+                target = target.parentNode;
+            }
+            
+            if (!target || typeof target.closest !== 'function') return;
 
             const addBtn = target.closest('.add-btn');
             if (addBtn) {
@@ -744,6 +930,32 @@
                 if (exist) exist.quantity++;
                 else shoppingCart.push({ ...prod, quantity: 1 });
                 saveCart();
+                showToast(`Додано: ${prod.name}`);
+                return;
+            }
+
+            const increaseBtn = target.closest('.increase-qty');
+            if (increaseBtn) {
+                const id = increaseBtn.dataset.id;
+                const item = shoppingCart.find(x => x.id === id);
+                if (item) item.quantity++;
+                saveCart();
+                renderCartModal();
+                return;
+            }
+
+            const decreaseBtn = target.closest('.decrease-qty');
+            if (decreaseBtn) {
+                const id = decreaseBtn.dataset.id;
+                const item = shoppingCart.find(x => x.id === id);
+                if (item) {
+                    item.quantity--;
+                    if (item.quantity <= 0) {
+                        shoppingCart = shoppingCart.filter(x => x.id !== id);
+                    }
+                }
+                saveCart();
+                renderCartModal();
                 return;
             }
 
@@ -755,42 +967,123 @@
                 return;
             }
 
-            const editPriceBtn = target.closest('.admin-edit-price');
-            if (editPriceBtn) {
-                const id = editPriceBtn.dataset.id;
-                const newP = prompt('Вкажіть нову ціну:');
-                if (newP !== null && newP !== "" && !isNaN(newP)) {
-                    try {
-                        await updateDoc(doc(db, 'products', id), { price: Number(newP) });
-                        await loadProducts();
-                        renderAdminList();
-                    } catch (err) { alert("Помилка! Перевірте права Firebase Rules."); }
+            // Відкриття редагування товару
+            const editBtn = target.closest('.admin-edit-product');
+            if (editBtn) {
+                const id = editBtn.dataset.id;
+                const prod = globalProducts.find(p => p.id === id);
+                if (prod) {
+                    document.getElementById('editProductId').value = id;
+                    document.getElementById('editProductNameInput').value = prod.name || '';
+                    document.getElementById('editProductPriceInput').value = prod.price || '';
+                    document.getElementById('editProductUnitInput').value = prod.unit || '';
+                    document.getElementById('editProductOverlay').classList.add('active');
                 }
                 return;
             }
 
+            // Збереження змін товару
+            if (target.id === 'saveEditProductBtn') {
+                const id = document.getElementById('editProductId').value;
+                const newName = document.getElementById('editProductNameInput').value.trim();
+                const newPrice = document.getElementById('editProductPriceInput').value;
+                const newUnit = document.getElementById('editProductUnitInput').value.trim();
+                
+                if (newName !== "" && newPrice !== "" && !isNaN(newPrice) && newUnit !== "") {
+                    try {
+                        document.getElementById('saveEditProductBtn').disabled = true;
+                        await updateDoc(doc(db, 'products', id), { 
+                            name: newName,
+                            price: Number(newPrice),
+                            unit: newUnit
+                        });
+                        await loadProducts();
+                        renderAdminList();
+                        document.getElementById('editProductOverlay').classList.remove('active');
+                        showToast("Товар оновлено!");
+                    } catch (err) { 
+                        console.error("Помилка редагування товару:", err);
+                        customAlert("Помилка! Перевірте права Firebase Rules.", "Помилка"); 
+                    } finally {
+                        document.getElementById('saveEditProductBtn').disabled = false;
+                    }
+                } else {
+                    customAlert("Будь ласка, заповніть всі поля коректно.", "Увага");
+                }
+                return;
+            }
+
+            // Скасування редагування
+            if (target.id === 'cancelEditProductBtn') {
+                document.getElementById('editProductOverlay').classList.remove('active');
+                return;
+            }
+
+            // Перемикач наявності товару (Є / Немає)
+            const toggleStockBtn = target.closest('.admin-toggle-stock');
+            if (toggleStockBtn) {
+                const id = toggleStockBtn.dataset.id;
+                const currentStock = toggleStockBtn.dataset.stock === 'true';
+                try {
+                    toggleStockBtn.disabled = true;
+                    await updateDoc(doc(db, 'products', id), { inStock: !currentStock });
+                    await loadProducts(); // Оновлюємо вітрину
+                    renderAdminList();    // Оновлюємо список в адмінці
+                } catch (err) { 
+                    console.error("Помилка зміни наявності:", err);
+                    customAlert("Помилка! Перевірте права Firebase Rules.", "Помилка"); 
+                    toggleStockBtn.disabled = false;
+                }
+                return;
+            }
+
+            // Видалення товару
             const deleteBtn = target.closest('.admin-delete');
             if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                if (confirm('Видалити цей товар з бази назавжди?')) {
-                    try {
-                        await deleteDoc(doc(db, 'products', id));
-                        await loadProducts();
-                        renderAdminList();
-                    } catch (err) { alert("Помилка! Перевірте права Firebase Rules."); }
+                document.getElementById('deleteProductId').value = deleteBtn.dataset.id;
+                document.getElementById('confirmDeleteOverlay').classList.add('active');
+                return;
+            }
+
+            // Підтвердження видалення
+            if (target.id === 'confirmDeleteBtn') {
+                const id = document.getElementById('deleteProductId').value;
+                try {
+                    document.getElementById('confirmDeleteBtn').disabled = true;
+                    await deleteDoc(doc(db, 'products', id));
+                    await loadProducts();
+                    renderAdminList();
+                    document.getElementById('confirmDeleteOverlay').classList.remove('active');
+                    showToast("Товар видалено!");
+                } catch (err) { 
+                    console.error("Помилка видалення товару:", err);
+                    customAlert("Помилка! Перевірте права Firebase Rules.", "Помилка"); 
+                } finally {
+                    document.getElementById('confirmDeleteBtn').disabled = false;
                 }
                 return;
             }
 
-            if (target.id === 'cartBtn') { renderCartModal(); document.getElementById('cartOverlay').classList.add('active'); }
-            if (target.id === 'authBtn') currentUser ? signOut(auth) : document.getElementById('authOverlay').classList.add('active');
-            if (target.id === 'cabinetBtn') { loadCabinet(); document.getElementById('cabinetOverlay').classList.add('active'); }
+            // Скасування видалення
+            if (target.id === 'cancelDeleteBtn') {
+                document.getElementById('confirmDeleteOverlay').classList.remove('active');
+                return;
+            }
             
-            if (target.id === 'adminBtn') { 
+            // Закриття системних повідомлень
+            if (target.id === 'closeAlertBtn') {
+                document.getElementById('alertOverlay').classList.remove('active');
+                return;
+            }
+
+            if (target.closest('#cartBtn')) { renderCartModal(); document.getElementById('cartOverlay').classList.add('active'); }
+            if (target.closest('#authBtn')) currentUser ? signOut(auth) : document.getElementById('authOverlay').classList.add('active');
+            if (target.closest('#cabinetBtn')) { loadCabinet(); document.getElementById('cabinetOverlay').classList.add('active'); }
+            
+            if (target.closest('#adminBtn')) { 
                 renderAdminList(); 
                 loadAdminOrders(); 
                 
-                // Завантажуємо налаштування Telegram при відкритті адмінки
                 try {
                     const tgDoc = await getDoc(doc(db, 'settings', 'telegram'));
                     if (tgDoc.exists()) {
@@ -802,21 +1095,28 @@
                 document.getElementById('adminOverlay').classList.add('active'); 
             }
             
-            if (target.classList.contains('open-auth')) document.getElementById('authOverlay').classList.add('active');
+            if (target.closest('.open-auth') || target.classList.contains('open-auth')) document.getElementById('authOverlay').classList.add('active');
             
-            if (['closeCartBtn', 'closeAuthBtn', 'closeCabinetBtn', 'closeAdminBtn', 'closeCheckoutBtn'].includes(target.id)) {
+            if (target.closest('#closeCartBtn') || target.closest('#closeAuthBtn') || target.closest('#closeCabinetBtn') || target.closest('#closeAdminBtn') || target.closest('#closeCheckoutBtn')) {
                 closeAllModals();
             }
 
-            if (target.id === 'checkoutBtn') {
+            if (target.closest('#checkoutBtn')) {
                 closeAllModals();
                 if (!currentUser) {
-                    alert('Щоб оформити замовлення, будь ласка, увійдіть у свій акаунт.');
+                    customAlert('Щоб оформити замовлення, будь ласка, увійдіть у свій акаунт.', 'Увага');
                     document.getElementById('authOverlay').classList.add('active');
                 } else if (shoppingCart.length === 0) {
-                    alert('Кошик порожній.');
+                    customAlert('Кошик порожній.', 'Помилка');
                 } else {
                     document.getElementById('checkoutOverlay').classList.add('active');
+                    
+                    if (currentUserProfile) {
+                        const nameInput = document.getElementById('customerFullName');
+                        const phoneInput = document.getElementById('customerPhone');
+                        if (!nameInput.value) nameInput.value = currentUserProfile.fullName || '';
+                        if (!phoneInput.value) phoneInput.value = currentUserProfile.phone || '';
+                    }
                 }
             }
             
@@ -831,6 +1131,7 @@
                 price: Number(document.getElementById('addProductPrice').value),
                 unit: document.getElementById('addProductUnit').value.trim(),
                 imageUrl: document.getElementById('addProductImage').value.trim(),
+                inStock: true, // За замовчуванням товар є в наявності
                 createdAt: new Date().toISOString()
             };
             try {
@@ -838,7 +1139,8 @@
                 await loadProducts();
                 renderAdminList();
                 e.target.reset();
-            } catch (err) { alert("Помилка додавання! Перевірте права доступу у Firebase."); }
+                showToast("Товар успішно додано!");
+            } catch (err) { customAlert("Помилка додавання! Перевірте права доступу у Firebase.", "Помилка"); }
         });
 
         // Збереження налаштувань Telegram
@@ -848,9 +1150,9 @@
             const chat = document.getElementById('tgChatId').value.trim();
             try {
                 await setDoc(doc(db, 'settings', 'telegram'), { botToken: token, chatId: chat });
-                alert("Налаштування Telegram успішно збережено!");
+                customAlert("Налаштування Telegram успішно збережено!", "Успіх");
             } catch (err) {
-                alert("Помилка збереження! Перевірте Firebase Rules для колекції settings.");
+                customAlert("Помилка збереження! Перевірте Firebase Rules для колекції settings.", "Помилка");
                 console.error(err);
             }
         });
@@ -880,11 +1182,10 @@
                 if (isLogin) {
                     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
                     
-                    // ПЕРЕВІРКА ПІДТВЕРДЖЕННЯ ПОШТИ (пропускаємо адміна, щоб ви точно могли зайти)
-                    if (!userCredential.user.emailVerified && userCredential.user.email !== ADMIN_EMAIL) {
-                        await signOut(auth); // Примусово виходимо
-                        alert("Будь ласка, підтвердіть вашу електронну пошту перед входом. Перевірте вхідні повідомлення або папку Спам.");
-                        return; // Зупиняємо виконання
+                    if (!userCredential.user.emailVerified) {
+                        await signOut(auth);
+                        customAlert("Будь ласка, підтвердіть вашу електронну пошту перед входом. Перевірте вхідні повідомлення або папку Спам.", "Підтвердіть пошту");
+                        return;
                     }
                 } else {
                     const fullName = document.getElementById('authFullName').value.trim();
@@ -900,19 +1201,16 @@
                             phone: phone,
                             email: userCredential.user.email,
                             createdAt: new Date().toISOString(),
-                            role: 'customer'
+                            role: 'customer' // За замовчуванням всі - покупці
                         });
                     } catch (fsErr) {
                         console.warn("Користувача створено, але не збережено в Firestore.", fsErr);
                     }
 
-                    // ВІДПРАВЛЯЄМО ЛИСТ ДЛЯ ПІДТВЕРДЖЕННЯ
                     await sendEmailVerification(userCredential.user);
-                    
-                    // Одразу виходимо з акаунта, поки пошта не підтверджена
                     await signOut(auth);
                     
-                    alert("Реєстрація успішна! На вашу електронну пошту надіслано лист із посиланням. Будь ласка, підтвердіть пошту перед першим входом.");
+                    customAlert("Реєстрація успішна! На вашу електронну пошту надіслано лист із посиланням. Будь ласка, підтвердіть пошту перед першим входом.", "Успіх");
                 }
                 
                 closeAllModals();
@@ -921,13 +1219,13 @@
 
             } catch (err) { 
                 if (err.code === 'auth/invalid-credential') {
-                    alert("Невірний логін або пароль.");
+                    customAlert("Невірний логін або пароль.", "Помилка");
                 } else if (err.code === 'auth/email-already-in-use') {
-                    alert("Ця пошта вже зареєстрована.");
+                    customAlert("Ця пошта вже зареєстрована.", "Помилка");
                 } else {
-                    alert("Помилка авторизації. Перевірте дані.");
+                    customAlert("Помилка авторизації. Перевірте дані.", "Помилка");
+                    console.error("Деталі помилки авторизації:", err);
                 }
-                console.error(err);
             }
         });
 
@@ -962,10 +1260,8 @@
                     createdAt: new Date().toISOString()
                 };
 
-                // 1. Зберігаємо замовлення в базі даних
                 await addDoc(collection(db, 'orders'), customerData);
 
-                // 2. Отримуємо токени Telegram з бази даних
                 let tgBotToken = '';
                 let tgChatId = '';
                 try {
@@ -978,7 +1274,6 @@
                     console.warn("Не вдалося отримати налаштування Telegram", err);
                 }
 
-                // 3. Відправляємо повідомлення, якщо токени налаштовані
                 if (tgBotToken && tgChatId) {
                     const telegramMsg = `🔔 НОВЕ ЗАМОВЛЕННЯ №${formattedNumber}!\n👤 Клієнт: ${cName}\n📞 Тел: ${cPhone}\n🏙 Місто: ${cCity}\n💰 Сума: ${total} грн\n\nСклад:\n${shoppingCart.map(i => `• ${i.name} (${i.quantity} ${i.unit})`).join('\n')}`;
                     
@@ -987,8 +1282,6 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ chat_id: tgChatId, text: telegramMsg })
                     }).catch(err => console.warn('Помилка відправки в Telegram', err));
-                } else {
-                    console.log("Повідомлення в Telegram не відправлено (токени не вказано в Адмін-панелі).");
                 }
 
                 shoppingCart = [];
@@ -996,7 +1289,7 @@
                 e.target.reset();
                 closeAllModals();
                 
-                alert(`Дякуємо! Ваше замовлення №${formattedNumber} прийнято.`);
+                customAlert(`Дякуємо! Ваше замовлення №${formattedNumber} прийнято.`, "Замовлення оформлено");
                 btn.disabled = false;
                 btn.textContent = "Підтвердити замовлення";
 
@@ -1004,14 +1297,9 @@
                 console.error(err);
                 btn.disabled = false;
                 btn.textContent = "Помилка! Спробуйте ще раз";
-                alert("Помилка відправки замовлення.");
+                customAlert("Помилка відправки замовлення.", "Помилка");
             }
         });
-
-        document.getElementById('themeToggleBtn').onclick = () => {
-            const html = document.documentElement;
-            html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
-        };
 
         // --- НАВІГАЦІЯ ПО САЙТУ ---
         document.getElementById('navShop').addEventListener('click', (e) => {
@@ -1029,6 +1317,11 @@
             document.getElementById('navFarm').classList.add('active');
             document.getElementById('navShop').classList.remove('active');
         });
+
+        document.getElementById('themeToggleBtn').onclick = () => {
+            const html = document.documentElement;
+            html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+        };
 
         loadProducts();
         updateCartUI();
