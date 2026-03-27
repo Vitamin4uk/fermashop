@@ -652,6 +652,7 @@
         .text-bold-primary { font-size: 1.5rem; font-weight: bold; color: var(--primaryColor); }
         .modal-title { margin-top: 0; color: var(--primaryColor); }
         .flex-gap { display: flex; gap: 10px; }
+        .flex-col-gap { display: flex; flex-direction: column; gap: 10px; } /* Виправлено баг з відсутнім класом */
 
         footer {
             padding: 2rem;
@@ -1114,13 +1115,13 @@
                                     <span style="padding: 0 10px; font-weight: bold;">${item.quantity}</span>
                                     <button class="qty-btn increase-qty" data-id="${escapeHTML(item.id)}">+</button>
                                 </div>
-                                <span style="min-width: 60px; text-align:right;">${item.price * item.quantity} грн</span>
+                                <span style="min-width: 60px; text-align:right;">${Number((item.price * item.quantity).toFixed(2))} грн</span>
                                 <button class="remove-item remove-btn" data-id="${escapeHTML(item.id)}" style="margin-left:5px;">✖</button>
                             </div>
                         </div>
                     `;
                 }).join('');
-                totalUI.textContent = `Разом: ${total} грн`;
+                totalUI.textContent = `Разом: ${Number(total.toFixed(2))} грн`;
             }
         }
 
@@ -1152,7 +1153,7 @@
                         <details class="order-details">
                             <summary>Деталі замовлення (${order.totalSum} грн)</summary>
                             <div style="padding-top:10px; border-top:1px solid #ddd; font-size:0.85rem">
-                                ${order.items.map(i => `<div>${escapeHTML(i.name)} — ${i.quantity} ${escapeHTML(i.unit)} (${i.price * i.quantity} грн)</div>`).join('')}
+                                ${order.items.map(i => `<div>${escapeHTML(i.name)} — ${i.quantity} ${escapeHTML(i.unit)} (${Number((i.price * i.quantity).toFixed(2))} грн)</div>`).join('')}
                                 <div style="margin-top:10px; color:#666">
                                     Місто: ${escapeHTML(order.customerCity)}<br>
                                     Отримувач: ${escapeHTML(order.customerFullName)}<br>
@@ -1197,7 +1198,7 @@
                 const statCountEl = document.getElementById('statMonthOrders');
                 const statSumEl = document.getElementById('statMonthSum');
                 if (statCountEl) statCountEl.textContent = monthOrdersCount;
-                if (statSumEl) statSumEl.textContent = monthOrdersSum + ' грн';
+                if (statSumEl) statSumEl.textContent = Number(monthOrdersSum.toFixed(2)) + ' грн';
 
                 if (orders.length === 0) {
                     container.innerHTML = "<p>Замовлень немає.</p>";
@@ -1295,16 +1296,19 @@
             if (!target || typeof target.closest !== 'function') return;
 
             // Керування гамбургер-меню
+            const navContainer = document.getElementById('navContainer');
             if (target.closest('#hamburgerBtn')) {
-                document.getElementById('navContainer').classList.toggle('active');
+                navContainer.classList.toggle('active');
                 return;
             }
             
-            // Автоматичне закриття мобільного меню при кліку на посилання чи кнопки
-            if (target.closest('#navContainer') && (target.tagName === 'A' || target.closest('button'))) {
-                // Не закриваємо меню, якщо клікнули на перемикач теми (щоб одразу бачити результат)
-                if (!target.closest('#themeToggleBtn')) {
-                    document.getElementById('navContainer').classList.remove('active');
+            // Закриття мобільного меню при кліку на посилання, кнопки або просто повз меню
+            if (navContainer.classList.contains('active')) {
+                if (!target.closest('#navContainer') || (target.tagName === 'A' || target.closest('button'))) {
+                    // Не закриваємо меню, якщо клікнули саме на перемикач теми
+                    if (!target.closest('#themeToggleBtn')) {
+                        navContainer.classList.remove('active');
+                    }
                 }
             }
 
@@ -1340,6 +1344,7 @@
             if (addBtn) {
                 const id = addBtn.dataset.id;
                 const prod = globalProducts.find(x => x.id === id);
+                if (!prod) return;
                 const exist = shoppingCart.find(x => x.id === id);
                 if (exist) exist.quantity++;
                 else shoppingCart.push({ ...prod, quantity: 1 });
@@ -1398,24 +1403,24 @@
                         descEl.innerHTML = "<em>Детальний опис для цього товару ще не додано. Проте гарантуємо, що він вирощений з любов’ю та турботою на нашій фермі!</em>";
                     }
                     
-                    const addBtn = document.getElementById('pdAddToCartBtn');
-                    addBtn.dataset.id = prod.id;
+                    const modalAddBtn = document.getElementById('pdAddToCartBtn');
+                    modalAddBtn.dataset.id = prod.id;
                     
                     if (prod.inStock === false) {
-                        addBtn.disabled = true;
-                        addBtn.textContent = 'Немає в наявності';
-                        addBtn.className = 'btn-flex'; // Очищаємо класи, застосовуються стандартні стилі disabled
-                        addBtn.style = '';
+                        modalAddBtn.disabled = true;
+                        modalAddBtn.textContent = 'Немає в наявності';
+                        modalAddBtn.className = 'btn-flex'; // Очищаємо класи
+                        modalAddBtn.removeAttribute('style'); // Безпечне скидання інлайн-стилів
                     } else if (!currentUser) {
-                        addBtn.disabled = false;
-                        addBtn.textContent = 'Увійти для покупки';
-                        addBtn.className = 'btn-flex btn-outline open-auth';
-                        addBtn.style = '';
+                        modalAddBtn.disabled = false;
+                        modalAddBtn.textContent = 'Увійти для покупки';
+                        modalAddBtn.className = 'btn-flex btn-outline open-auth';
+                        modalAddBtn.removeAttribute('style');
                     } else {
-                        addBtn.disabled = false;
-                        addBtn.textContent = 'Додати в кошик';
-                        addBtn.className = 'btn-flex btn-primary add-btn';
-                        addBtn.style = '';
+                        modalAddBtn.disabled = false;
+                        modalAddBtn.textContent = 'Додати в кошик';
+                        modalAddBtn.className = 'btn-flex btn-primary add-btn';
+                        modalAddBtn.removeAttribute('style');
                     }
 
                     document.getElementById('productDetailsOverlay').classList.add('active');
@@ -1728,7 +1733,8 @@
 
             try {
                 const formattedNumber = Math.floor(100000 + Math.random() * 900000).toString();
-                const total = shoppingCart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+                // Фікс проблеми з дробовими числами для суми замовлення
+                const total = Number(shoppingCart.reduce((acc, i) => acc + i.price * i.quantity, 0).toFixed(2));
                 
                 const cName = document.getElementById('customerFullName').value.trim();
                 const cPhone = document.getElementById('customerPhone').value.trim();
