@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Локальна Ферма | Свіжа продукція</title>
+    <title>Куркульське Подвір’я | Свіжа продукція</title>
+    
+    <!-- SEO та Open Graph теги для соцмереж (Viber, Telegram, Facebook тощо) -->
+    <meta name="description" content="Куркульське Подвір’я — інтернет-магазин натуральних та екологічно чистих фермерських продуктів. Доставка свіжої продукції прямо до ваших дверей!">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Куркульське Подвір’я">
+    <meta property="og:title" content="Куркульське Подвір’я | Свіжі фермерські продукти">
+    <meta property="og:description" content="Замовляйте натуральні еко-продукти з доставкою додому. Свіже м'ясо, молочні продукти, овочі та фрукти з власного господарства.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
     <style>
         /* Базові змінні */
         :root {
@@ -36,6 +48,9 @@
             margin: 0;
             padding: 0;
             transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         header {
@@ -117,10 +132,39 @@
             color: var(--primaryColor);
         }
 
+        #themeToggleBtn {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background-color: var(--cardBg);
+            border: 1px solid var(--borderColor);
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+
+        #themeToggleBtn:hover {
+            transform: scale(1.1) rotate(15deg);
+        }
+
+        [data-theme="light"] #themeToggleBtn::after {
+            content: '🌙';
+        }
+
+        [data-theme="dark"] #themeToggleBtn::after {
+            content: '☀️';
+        }
+
         main {
             padding: 2rem;
             max-width: 1200px;
             margin: 0 auto;
+            flex-grow: 1;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         section {
@@ -162,6 +206,7 @@
             width: 100%;
             height: 180px;
             object-fit: cover;
+            cursor: pointer;
         }
 
         .product-info {
@@ -394,21 +439,25 @@
             text-align: center;
             border-top: 1px solid var(--borderColor);
             font-size: 0.9rem;
+            margin-top: auto;
+            width: 100%;
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="logo">Локальна Ферма</div>
+        <div class="logo">Куркульське Подвір’я</div>
         
         <nav class="main-nav">
             <a href="#" id="navShop" class="active">Магазин</a>
             <a href="#" id="navFarm">Наше господарство</a>
+            <a href="#" id="navDelivery">Доставка і оплата</a>
         </nav>
 
         <div class="header-controls">
-            <button id="themeToggleBtn">🎨</button>
+            <button id="themeToggleBtn" title="Змінити тему"></button>
             <button id="adminBtn" style="display: none; border-color: var(--accentColor); color: var(--accentColor);">Адмін</button>
             <button id="cabinetBtn" style="display: none;">Кабінет</button>
             <button id="authBtn">Увійти</button>
@@ -495,6 +544,47 @@
         </div>
     </div>
 
+    <!-- Модалка Доставка і Оплата -->
+    <div id="deliveryInfoOverlay" class="overlay">
+        <div class="modal" style="max-width: 500px;">
+            <h2 style="margin-top: 0; color: var(--primaryColor);">Доставка і оплата</h2>
+            <div style="line-height: 1.6; color: var(--textColor);">
+                <h3>🚚 Доставка</h3>
+                <p>Ми здійснюємо доставку свіжої продукції безпосередньо з нашої ферми до ваших дверей.</p>
+                <ul>
+                    <li><strong>Дні доставки:</strong> Вівторок та П'ятниця (з 10:00 до 18:00).</li>
+                    <li><strong>Вартість:</strong> Безкоштовно при замовленні від 500 грн. Для менших замовлень — 50 грн.</li>
+                    <li><strong>Зона доставки:</strong> місто та найближчі передмістя (до 15 км).</li>
+                </ul>
+                <h3>💳 Оплата</h3>
+                <p>Ми довіряємо нашим клієнтам, тому ви оплачуєте товар після його огляду.</p>
+                <ul>
+                    <li><strong>Готівкою:</strong> кур'єру при отриманні.</li>
+                    <li><strong>Переказ на картку:</strong> за реквізитами при отриманні товару.</li>
+                </ul>
+            </div>
+            <button id="closeDeliveryInfoBtn" style="width: 100%; margin-top: 1.5rem; background-color: var(--primaryColor); color: white; padding: 0.8rem; border-radius: 4px; border: none; font-weight: bold; cursor: pointer;">Зрозуміло</button>
+        </div>
+    </div>
+
+    <!-- Модалка Деталі товару -->
+    <div id="productDetailsOverlay" class="overlay">
+        <div class="modal" style="max-width: 600px;">
+            <h2 id="pdTitle" style="margin-top: 0; color: var(--primaryColor);">Назва</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <img id="pdImage" src="" alt="" style="width: 100%; max-width: 250px; height: auto; object-fit: cover; border-radius: 8px; border: 1px solid var(--borderColor);">
+                <div style="flex: 1; min-width: 200px;">
+                    <p id="pdPrice" class="price" style="font-size: 1.3rem; margin-top: 0; margin-bottom: 1rem; color: var(--primaryColor); font-weight: bold;"></p>
+                    <div id="pdDescription" style="white-space: pre-wrap; line-height: 1.5; color: var(--textColor); font-size: 0.95rem;"></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="pdAddToCartBtn" style="background-color: var(--primaryColor); color: white; flex: 1; font-weight: bold; border: none; padding: 0.8rem; border-radius: 4px; cursor: pointer;">Додати в кошик</button>
+                <button id="closeProductDetailsBtn" style="flex: 1; background-color: var(--cardBg); color: var(--textColor); border: 1px solid var(--borderColor); padding: 0.8rem; border-radius: 4px; cursor: pointer;">Закрити</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Модалка Кабінету -->
     <div id="cabinetOverlay" class="overlay">
         <div class="modal" style="max-width: 600px;">
@@ -511,6 +601,18 @@
         <div class="modal" style="max-width: 650px;">
             <h2>Управління фермою</h2>
             
+            <!-- Секція статистики -->
+            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem;">
+                <div style="flex: 1; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
+                    <div style="font-size: 0.9rem; color: #666;">Замовлень за місяць</div>
+                    <div id="statMonthOrders" style="font-size: 1.5rem; font-weight: bold; color: var(--primaryColor);">0</div>
+                </div>
+                <div style="flex: 1; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
+                    <div style="font-size: 0.9rem; color: #666;">Сума за місяць</div>
+                    <div id="statMonthSum" style="font-size: 1.5rem; font-weight: bold; color: var(--primaryColor);">0 грн</div>
+                </div>
+            </div>
+
             <!-- Секція замовлень для адміна -->
             <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--borderColor);">
                 <h3 style="margin-top:0">Всі замовлення клієнтів</h3>
@@ -526,6 +628,7 @@
 
                 <input type="number" id="addProductPrice" placeholder="Ціна (грн)" required min="0.01" step="0.01">
                 <input type="text" id="addProductUnit" placeholder="Одиниця (кг, шт, дес)" required maxlength="20">
+                <textarea id="addProductDescription" placeholder="Детальний опис товару (Склад, термін придатності, особливості...)" rows="3" maxlength="1000"></textarea>
                 <input type="url" id="addProductImage" placeholder="URL зображення">
                 <button type="submit" style="background-color: var(--accentColor); color: white;">Опублікувати</button>
             </form>
@@ -545,8 +648,7 @@
             <button id="closeAdminBtn" style="width: 100%; margin-top: 1rem;">Закрити</button>
         </div>
     </div>
-
-    <!-- Модалка редагування товару -->
+        <!-- Модалка редагування товару -->
     <div id="editProductOverlay" class="overlay" style="z-index: 1010;">
         <div class="modal" style="max-width: 350px; text-align: center;">
             <h3 style="margin-top: 0;">Редагувати товар</h3>
@@ -554,6 +656,7 @@
                 <input type="text" id="editProductNameInput" placeholder="Назва товару" maxlength="100">
                 <input type="number" id="editProductPriceInput" placeholder="Ціна (грн)" min="0.01" step="0.01">
                 <input type="text" id="editProductUnitInput" placeholder="Одиниця (кг, шт, дес)" maxlength="20">
+                <textarea id="editProductDescriptionInput" placeholder="Детальний опис товару" rows="3" maxlength="1000"></textarea>
                 <input type="hidden" id="editProductId">
             </div>
             <div style="display:flex; gap:10px; margin-top:1.5rem;">
@@ -589,7 +692,7 @@
     <div id="toast-container"></div>
 
     <footer>
-        <p>&copy; 2026 Локальна Ферма. Свіжі продукти прямо до вашого столу.</p>
+        <p>&copy; 2026 Куркульське Подвір’я. Свіжі продукти прямо до вашого столу.</p>
     </footer>
 
     <script type="module">
@@ -629,8 +732,11 @@
         let globalProducts = [];
         let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
 
-        const overlays = ['cartOverlay', 'authOverlay', 'cabinetOverlay', 'adminOverlay', 'checkoutOverlay'];
-        const closeAllModals = () => overlays.forEach(id => document.getElementById(id).classList.remove('active'));
+        const overlays = ['cartOverlay', 'authOverlay', 'cabinetOverlay', 'adminOverlay', 'checkoutOverlay', 'editProductOverlay', 'confirmDeleteOverlay', 'alertOverlay', 'productDetailsOverlay', 'deliveryInfoOverlay'];
+        const closeAllModals = () => overlays.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
 
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
@@ -688,7 +794,7 @@
             grid.innerHTML = globalProducts.map(p => {
                 const safeName = escapeHTML(p.name);
                 const safeUnit = escapeHTML(p.unit);
-                const safeImg = p.imageUrl && p.imageUrl.startsWith('http') ? escapeHTML(p.imageUrl) : 'https://via.placeholder.com/300?text=Ферма';
+                const safeImg = p.imageUrl && p.imageUrl.startsWith('http') ? escapeHTML(p.imageUrl) : 'https://via.placeholder.com/300?text=Куркульське+Подвір’я';
                 
                 // Перевіряємо наявність товару (якщо поле відсутнє, вважаємо що є)
                 const isOutOfStock = p.inStock === false; 
@@ -705,7 +811,7 @@
 
                 return `
                 <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
-                    <img src="${safeImg}" class="product-img" loading="lazy" alt="${safeName}">
+                    <img src="${safeImg}" class="product-img open-details" data-id="${escapeHTML(p.id)}" loading="lazy" alt="${safeName}" title="Натисніть для перегляду деталей">
                     <div class="product-info">
                         <h3 style="margin:0 0 5px 0">${safeName}</h3>
                         <p class="price">${p.price} грн / ${safeUnit}</p>
@@ -826,6 +932,32 @@
                 const snap = await getDocs(collection(db, 'orders'));
                 const orders = snap.docs.map(d => ({id: d.id, ...d.data()}))
                                     .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                // Підрахунок статистики за поточний місяць
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                
+                let monthOrdersCount = 0;
+                let monthOrdersSum = 0;
+
+                orders.forEach(order => {
+                    if (order.createdAt) {
+                        const orderDate = new Date(order.createdAt);
+                        if (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
+                            monthOrdersCount++;
+                            // Додаємо до суми лише нескасовані замовлення
+                            if (order.status !== 'Скасовано') {
+                                monthOrdersSum += Number(order.totalSum) || 0;
+                            }
+                        }
+                    }
+                });
+
+                const statCountEl = document.getElementById('statMonthOrders');
+                const statSumEl = document.getElementById('statMonthSum');
+                if (statCountEl) statCountEl.textContent = monthOrdersCount;
+                if (statSumEl) statSumEl.textContent = monthOrdersSum + ' грн';
 
                 if (orders.length === 0) {
                     container.innerHTML = "<p>Замовлень немає.</p>";
@@ -967,6 +1099,52 @@
                 return;
             }
 
+            // Відкриття деталей товару при кліку на фотографію
+            const openDetailsBtn = target.closest('.open-details');
+            if (openDetailsBtn) {
+                const id = openDetailsBtn.dataset.id;
+                const prod = globalProducts.find(x => x.id === id);
+                if (prod) {
+                    document.getElementById('pdTitle').textContent = prod.name;
+                    document.getElementById('pdImage').src = prod.imageUrl && prod.imageUrl.startsWith('http') ? prod.imageUrl : 'https://via.placeholder.com/300?text=Куркульське+Подвір’я';
+                    document.getElementById('pdPrice').textContent = `${prod.price} грн / ${prod.unit}`;
+                    
+                    const descEl = document.getElementById('pdDescription');
+                    if (prod.description && prod.description.trim() !== "") {
+                        descEl.textContent = prod.description;
+                    } else {
+                        descEl.innerHTML = "<em>Детальний опис для цього товару ще не додано. Проте гарантуємо, що він вирощений з любов’ю та турботою на нашій фермі!</em>";
+                    }
+                    
+                    const addBtn = document.getElementById('pdAddToCartBtn');
+                    addBtn.dataset.id = prod.id;
+                    
+                    if (prod.inStock === false) {
+                        addBtn.disabled = true;
+                        addBtn.textContent = 'Немає в наявності';
+                        addBtn.style.backgroundColor = '#9e9e9e';
+                        addBtn.classList.remove('add-btn', 'open-auth');
+                    } else if (!currentUser) {
+                        addBtn.disabled = false;
+                        addBtn.textContent = 'Увійти для покупки';
+                        addBtn.style.backgroundColor = 'var(--borderColor)';
+                        addBtn.style.color = 'var(--textColor)';
+                        addBtn.classList.add('open-auth');
+                        addBtn.classList.remove('add-btn');
+                    } else {
+                        addBtn.disabled = false;
+                        addBtn.textContent = 'Додати в кошик';
+                        addBtn.style.backgroundColor = 'var(--primaryColor)';
+                        addBtn.style.color = 'white';
+                        addBtn.classList.add('add-btn');
+                        addBtn.classList.remove('open-auth');
+                    }
+
+                    document.getElementById('productDetailsOverlay').classList.add('active');
+                }
+                return;
+            }
+
             // Відкриття редагування товару
             const editBtn = target.closest('.admin-edit-product');
             if (editBtn) {
@@ -977,6 +1155,7 @@
                     document.getElementById('editProductNameInput').value = prod.name || '';
                     document.getElementById('editProductPriceInput').value = prod.price || '';
                     document.getElementById('editProductUnitInput').value = prod.unit || '';
+                    document.getElementById('editProductDescriptionInput').value = prod.description || '';
                     document.getElementById('editProductOverlay').classList.add('active');
                 }
                 return;
@@ -988,6 +1167,7 @@
                 const newName = document.getElementById('editProductNameInput').value.trim();
                 const newPrice = document.getElementById('editProductPriceInput').value;
                 const newUnit = document.getElementById('editProductUnitInput').value.trim();
+                const newDesc = document.getElementById('editProductDescriptionInput').value.trim();
                 
                 if (newName !== "" && newPrice !== "" && !isNaN(newPrice) && newUnit !== "") {
                     try {
@@ -995,7 +1175,8 @@
                         await updateDoc(doc(db, 'products', id), { 
                             name: newName,
                             price: Number(newPrice),
-                            unit: newUnit
+                            unit: newUnit,
+                            description: newDesc
                         });
                         await loadProducts();
                         renderAdminList();
@@ -1095,9 +1276,13 @@
                 document.getElementById('adminOverlay').classList.add('active'); 
             }
             
-            if (target.closest('.open-auth') || target.classList.contains('open-auth')) document.getElementById('authOverlay').classList.add('active');
+            if (target.closest('.open-auth') || target.classList.contains('open-auth')) {
+                // Закриваємо модалку деталей, якщо натиснули "Увійти"
+                document.getElementById('productDetailsOverlay').classList.remove('active');
+                document.getElementById('authOverlay').classList.add('active');
+            }
             
-            if (target.closest('#closeCartBtn') || target.closest('#closeAuthBtn') || target.closest('#closeCabinetBtn') || target.closest('#closeAdminBtn') || target.closest('#closeCheckoutBtn')) {
+            if (target.closest('#closeCartBtn') || target.closest('#closeAuthBtn') || target.closest('#closeCabinetBtn') || target.closest('#closeAdminBtn') || target.closest('#closeCheckoutBtn') || target.closest('#closeProductDetailsBtn') || target.closest('#closeDeliveryInfoBtn')) {
                 closeAllModals();
             }
 
@@ -1130,6 +1315,7 @@
                 name: document.getElementById('addProductName').value.trim(),
                 price: Number(document.getElementById('addProductPrice').value),
                 unit: document.getElementById('addProductUnit').value.trim(),
+                description: document.getElementById('addProductDescription').value.trim(),
                 imageUrl: document.getElementById('addProductImage').value.trim(),
                 inStock: true, // За замовчуванням товар є в наявності
                 createdAt: new Date().toISOString()
@@ -1316,6 +1502,11 @@
             document.getElementById('view-farm').style.display = 'block';
             document.getElementById('navFarm').classList.add('active');
             document.getElementById('navShop').classList.remove('active');
+        });
+
+        document.getElementById('navDelivery').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('deliveryInfoOverlay').classList.add('active');
         });
 
         document.getElementById('themeToggleBtn').onclick = () => {
