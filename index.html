@@ -399,6 +399,29 @@
             border-bottom: 1px solid var(--borderColor);
         }
 
+        /* Мобільна адаптація для адмінки та модальних вікон */
+        @media (max-width: 600px) {
+            .modal {
+                padding: 1.2rem 1rem;
+            }
+            .admin-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.8rem;
+            }
+            .admin-item > div {
+                width: 100%;
+            }
+            .admin-item > div > button {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+            }
+            .admin-item > div > .admin-toggle-stock {
+                flex: 2; /* Кнопці "Є/Немає" даємо трохи більше місця, бо там є текст */
+            }
+        }
+
         .order-history-card {
             background: var(--cardBg);
             padding: 1rem;
@@ -437,10 +460,10 @@
             font-weight: 500;
             background-color: var(--bgColor);
             color: var(--textColor);
-            /* Мобільний вигляд (більший) */
-            padding: 0.6rem 1rem;
-            font-size: 1.05rem;
-            min-width: 160px;
+            /* Мобільний вигляд (більший, але адаптивний) */
+            padding: 0.5rem 0.8rem;
+            font-size: 1rem;
+            min-width: 130px;
         }
 
         @media (min-width: 768px) {
@@ -681,12 +704,12 @@
             <h2>Управління фермою</h2>
             
             <!-- Секція статистики -->
-            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem;">
-                <div style="flex: 1; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
+            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 130px; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
                     <div style="font-size: 0.9rem; color: #666;">Замовлень за місяць</div>
                     <div id="statMonthOrders" style="font-size: 1.5rem; font-weight: bold; color: var(--primaryColor);">0</div>
                 </div>
-                <div style="flex: 1; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
+                <div style="flex: 1; min-width: 130px; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
                     <div style="font-size: 0.9rem; color: #666;">Сума за місяць</div>
                     <div id="statMonthSum" style="font-size: 1.5rem; font-weight: bold; color: var(--primaryColor);">0 грн</div>
                 </div>
