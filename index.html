@@ -400,17 +400,18 @@
         }
 
         /* Мобільна адаптація для адмінки та модальних вікон */
-        @media (max-width: 480px) {
+        @media (max-width: 600px) {
             .modal {
                 padding: 1.2rem 1rem;
             }
-            .admin-item {
+            .cart-item, .admin-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 0.8rem;
             }
-            .admin-item > div {
+            .cart-item > div:last-child, .admin-item > div {
                 width: 100%;
+                justify-content: space-between;
             }
             .admin-item > div > button {
                 flex: 1;
@@ -419,6 +420,15 @@
             }
             .admin-item > div > .admin-toggle-stock {
                 flex: 2; /* Кнопці "Є/Немає" даємо трохи більше місця, бо там є текст */
+            }
+            .order-history-card > div:first-child {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 5px !important;
+            }
+            .order-history-card select {
+                width: 100% !important;
+                margin-top: 5px;
             }
         }
 
@@ -536,6 +546,25 @@
             transform: translateY(0);
         }
 
+        /* --- Утилітарні класи (Заміна inline-стилів) --- */
+        .btn-primary { background-color: var(--primaryColor); color: white; border-color: var(--primaryColor); }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-danger { background-color: #c62828; color: white; border-color: #c62828; }
+        .btn-accent { background-color: var(--accentColor); color: white; border-color: var(--accentColor); }
+        .btn-outline { background-color: var(--cardBg); color: var(--textColor); border: 1px solid var(--borderColor); }
+        
+        .btn-block { display: block; width: 100%; padding: 0.8rem; margin-top: 1rem; font-weight: bold; border-radius: 4px; }
+        .btn-flex { flex: 1; padding: 0.8rem; font-weight: bold; border-radius: 4px; }
+        
+        .stock-in { background-color: #e8f5e9; border-color: #4caf50; color: #2e7d32; }
+        .stock-out { background-color: #ffebee; border-color: #f44336; color: #c62828; }
+        
+        .stat-card { flex: 1; min-width: 130px; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center; }
+        .text-muted { font-size: 0.9rem; color: #666; }
+        .text-bold-primary { font-size: 1.5rem; font-weight: bold; color: var(--primaryColor); }
+        .modal-title { margin-top: 0; color: var(--primaryColor); }
+        .flex-gap { display: flex; gap: 10px; }
+
         footer {
             padding: 2rem;
             text-align: center;
@@ -604,9 +633,9 @@
             <h2>Ваш кошик</h2>
             <div id="cartItemsContainer"></div>
             <div id="cartTotalSum" style="font-weight: bold; text-align: right; margin: 1rem 0; font-size: 1.2rem;"></div>
-            <div class="cart-actions">
-                <button id="closeCartBtn">Продовжити покупки</button>
-                <button id="checkoutBtn" style="background-color: var(--primaryColor); color: white;">До оформлення</button>
+            <div class="flex-gap">
+                <button id="closeCartBtn" class="btn-outline btn-flex">Продовжити покупки</button>
+                <button id="checkoutBtn" class="btn-primary btn-flex">До оформлення</button>
             </div>
         </div>
     </div>
@@ -620,9 +649,9 @@
                 <input type="tel" id="customerPhone" placeholder="Номер телефону" required pattern="[\+0-9\-\(\)\s]{10,20}">
                 <input type="text" id="customerCity" placeholder="Місто доставки" required maxlength="100">
                 <textarea id="orderMessage" rows="3" placeholder="Коментар до замовлення" maxlength="500"></textarea>
-                <button type="submit" id="submitOrderBtn" style="background-color: var(--primaryColor); color: #ffffff; padding: 1rem; font-weight: bold;">Підтвердити замовлення</button>
+                <button type="submit" id="submitOrderBtn" class="btn-primary btn-block" style="margin-top: 0;">Підтвердити замовлення</button>
             </form>
-            <button id="closeCheckoutBtn" style="width: 100%; margin-top: 1rem;">Скасувати</button>
+            <button id="closeCheckoutBtn" class="btn-outline btn-block">Скасувати</button>
         </div>
     </div>
 
@@ -639,17 +668,17 @@
                     <input type="tel" id="authPhone" placeholder="Номер телефону" pattern="[\+0-9\-\(\)\s]{10,20}">
                 </div>
 
-                <button type="submit" id="authSubmitBtn" style="background-color: var(--primaryColor); color: white;">Увійти</button>
+                <button type="submit" id="authSubmitBtn" class="btn-primary btn-block" style="margin-top: 0;">Увійти</button>
                 <p id="toggleAuthModeBtn" style="text-align: center; cursor: pointer; text-decoration: underline; font-size: 0.9rem;">Немає акаунту? Реєстрація</p>
             </form>
-            <button id="closeAuthBtn" style="width: 100%; margin-top: 1rem;">Скасувати</button>
+            <button id="closeAuthBtn" class="btn-outline btn-block">Скасувати</button>
         </div>
     </div>
 
     <!-- Модалка Доставка і Оплата -->
     <div id="deliveryInfoOverlay" class="overlay">
         <div class="modal" style="max-width: 500px;">
-            <h2 style="margin-top: 0; color: var(--primaryColor);">Доставка і оплата</h2>
+            <h2 class="modal-title">Доставка і оплата</h2>
             <div style="line-height: 1.6; color: var(--textColor);">
                 <h3>🚚 Доставка</h3>
                 <p>Ми здійснюємо доставку свіжої продукції безпосередньо з нашої ферми до ваших дверей.</p>
@@ -665,24 +694,24 @@
                     <li><strong>Переказ на картку:</strong> за реквізитами при отриманні товару.</li>
                 </ul>
             </div>
-            <button id="closeDeliveryInfoBtn" style="width: 100%; margin-top: 1.5rem; background-color: var(--primaryColor); color: white; padding: 0.8rem; border-radius: 4px; border: none; font-weight: bold; cursor: pointer;">Зрозуміло</button>
+            <button id="closeDeliveryInfoBtn" class="btn-primary btn-block">Зрозуміло</button>
         </div>
     </div>
 
     <!-- Модалка Деталі товару -->
     <div id="productDetailsOverlay" class="overlay">
         <div class="modal" style="max-width: 600px;">
-            <h2 id="pdTitle" style="margin-top: 0; color: var(--primaryColor);">Назва</h2>
+            <h2 id="pdTitle" class="modal-title">Назва</h2>
             <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
                 <img id="pdImage" src="" alt="" style="width: 100%; max-width: 250px; height: auto; object-fit: cover; border-radius: 8px; border: 1px solid var(--borderColor);">
                 <div style="flex: 1; min-width: 200px;">
-                    <p id="pdPrice" class="price" style="font-size: 1.3rem; margin-top: 0; margin-bottom: 1rem; color: var(--primaryColor); font-weight: bold;"></p>
+                    <p id="pdPrice" class="text-bold-primary" style="margin-top: 0; margin-bottom: 1rem;"></p>
                     <div id="pdDescription" style="white-space: pre-wrap; line-height: 1.5; color: var(--textColor); font-size: 0.95rem;"></div>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button id="pdAddToCartBtn" style="background-color: var(--primaryColor); color: white; flex: 1; font-weight: bold; border: none; padding: 0.8rem; border-radius: 4px; cursor: pointer;">Додати в кошик</button>
-                <button id="closeProductDetailsBtn" style="flex: 1; background-color: var(--cardBg); color: var(--textColor); border: 1px solid var(--borderColor); padding: 0.8rem; border-radius: 4px; cursor: pointer;">Закрити</button>
+            <div class="flex-gap">
+                <button id="pdAddToCartBtn" class="btn-primary btn-flex">Додати в кошик</button>
+                <button id="closeProductDetailsBtn" class="btn-outline btn-flex">Закрити</button>
             </div>
         </div>
     </div>
@@ -694,7 +723,7 @@
             <div id="orderHistoryContainer">
                 <div class="loader"></div>
             </div>
-            <button id="closeCabinetBtn" style="width: 100%; margin-top: 1rem;">Закрити</button>
+            <button id="closeCabinetBtn" class="btn-outline btn-block">Закрити</button>
         </div>
     </div>
 
@@ -705,13 +734,13 @@
             
             <!-- Секція статистики -->
             <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 130px; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
-                    <div style="font-size: 0.9rem; color: #666;">Замовлень за місяць</div>
-                    <div id="statMonthOrders" style="font-size: 1.5rem; font-weight: bold; color: var(--primaryColor);">0</div>
+                <div class="stat-card">
+                    <div class="text-muted">Замовлень за місяць</div>
+                    <div id="statMonthOrders" class="text-bold-primary">0</div>
                 </div>
-                <div style="flex: 1; min-width: 130px; background: var(--cardBg); padding: 1rem; border-radius: 8px; border: 1px solid var(--borderColor); text-align: center;">
-                    <div style="font-size: 0.9rem; color: #666;">Сума за місяць</div>
-                    <div id="statMonthSum" style="font-size: 1.5rem; font-weight: bold; color: var(--primaryColor);">0 грн</div>
+                <div class="stat-card">
+                    <div class="text-muted">Сума за місяць</div>
+                    <div id="statMonthSum" class="text-bold-primary">0 грн</div>
                 </div>
             </div>
 
@@ -732,22 +761,22 @@
                 <input type="text" id="addProductUnit" placeholder="Одиниця (кг, шт, дес)" required maxlength="20">
                 <textarea id="addProductDescription" placeholder="Детальний опис товару (Склад, термін придатності, особливості...)" rows="3" maxlength="1000"></textarea>
                 <input type="url" id="addProductImage" placeholder="URL зображення">
-                <button type="submit" style="background-color: var(--accentColor); color: white;">Опублікувати</button>
+                <button type="submit" class="btn-accent" style="padding: 0.8rem; border-radius: 4px;">Опублікувати</button>
             </form>
 
             <!-- Секція налаштувань Telegram -->
             <form id="telegramSettingsForm" class="contact-form" style="margin-bottom: 2rem; padding: 1rem; border: 1px dashed var(--borderColor);">
                 <h3 style="margin-top:0">Налаштування Telegram</h3>
-                <p style="font-size: 0.8rem; color: #666; margin-top: -10px;">Введіть токен бота та ID чату для отримання сповіщень.</p>
+                <p class="text-muted" style="margin-top: -10px;">Введіть токен бота та ID чату для отримання сповіщень.</p>
                 <input type="text" id="tgBotToken" placeholder="Bot Token (напр. 12345:ABCde...)" required>
                 <input type="text" id="tgChatId" placeholder="Chat ID (напр. 372259859)" required>
-                <button type="submit" style="background-color: var(--primaryColor); color: white;">Зберегти налаштування Telegram</button>
+                <button type="submit" class="btn-primary" style="padding: 0.8rem; border-radius: 4px;">Зберегти налаштування Telegram</button>
             </form>
             
             <!-- Список товарів -->
             <h3>Керування наявністю та цінами</h3>
             <div id="adminProductsList" style="max-height: 250px; overflow-y: auto;"></div>
-            <button id="closeAdminBtn" style="width: 100%; margin-top: 1rem;">Закрити</button>
+            <button id="closeAdminBtn" class="btn-outline btn-block">Закрити</button>
         </div>
     </div>
 
@@ -755,16 +784,16 @@
     <div id="editProductOverlay" class="overlay" style="z-index: 1010;">
         <div class="modal" style="max-width: 350px; text-align: center;">
             <h3 style="margin-top: 0;">Редагувати товар</h3>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="flex-col-gap">
                 <input type="text" id="editProductNameInput" placeholder="Назва товару" maxlength="100">
                 <input type="number" id="editProductPriceInput" placeholder="Ціна (грн)" min="0.01" step="0.01">
                 <input type="text" id="editProductUnitInput" placeholder="Одиниця (кг, шт, дес)" maxlength="20">
                 <textarea id="editProductDescriptionInput" placeholder="Детальний опис товару" rows="3" maxlength="1000"></textarea>
                 <input type="hidden" id="editProductId">
             </div>
-            <div style="display:flex; gap:10px; margin-top:1.5rem;">
-                <button id="saveEditProductBtn" style="background-color: var(--primaryColor); color: white; flex:1;">Зберегти</button>
-                <button id="cancelEditProductBtn" style="flex:1;">Скасувати</button>
+            <div class="flex-gap" style="margin-top:1.5rem;">
+                <button id="saveEditProductBtn" class="btn-primary btn-flex">Зберегти</button>
+                <button id="cancelEditProductBtn" class="btn-outline btn-flex">Скасувати</button>
             </div>
         </div>
     </div>
@@ -775,9 +804,9 @@
             <h3 style="margin-top: 0; color: #c62828;">Видалити товар?</h3>
             <p style="font-size: 0.9rem; margin-bottom: 1.5rem;">Цю дію неможливо скасувати.</p>
             <input type="hidden" id="deleteProductId">
-            <div style="display:flex; gap:10px;">
-                <button id="confirmDeleteBtn" style="background-color: #c62828; color: white; flex:1;">Видалити</button>
-                <button id="cancelDeleteBtn" style="flex:1;">Скасувати</button>
+            <div class="flex-gap">
+                <button id="confirmDeleteBtn" class="btn-danger btn-flex">Видалити</button>
+                <button id="cancelDeleteBtn" class="btn-outline btn-flex">Скасувати</button>
             </div>
         </div>
     </div>
@@ -785,9 +814,9 @@
     <!-- Модалка для повідомлень (заміна alert) -->
     <div id="alertOverlay" class="overlay" style="z-index: 2000;">
         <div class="modal" style="max-width: 400px; text-align: center;">
-            <h3 id="alertTitle" style="margin-top: 0;">Повідомлення</h3>
+            <h3 id="alertTitle" class="modal-title">Повідомлення</h3>
             <p id="alertMessage" style="margin-bottom: 1.5rem; line-height: 1.5;"></p>
-            <button id="closeAlertBtn" style="background-color: var(--primaryColor); color: white; width: 100%;">Зрозуміло</button>
+            <button id="closeAlertBtn" class="btn-primary btn-block" style="margin-top: 0;">Зрозуміло</button>
         </div>
     </div>
 
@@ -919,7 +948,7 @@
                 // Формуємо кнопку покупки залежно від статусу авторизації та наявності товару
                 let actionButton = '';
                 if (isOutOfStock) {
-                    actionButton = `<button disabled class="buyBtn" style="background-color: #9e9e9e;">Немає в наявності</button>`;
+                    actionButton = `<button disabled class="buyBtn">Немає в наявності</button>`;
                 } else if (currentUser) {
                     actionButton = `<button class="buyBtn add-btn" data-id="${escapeHTML(p.id)}">В кошик</button>`;
                 } else {
@@ -1125,8 +1154,8 @@
                         <strong>${escapeHTML(p.name)}</strong><br>
                         ${p.price} грн
                     </span>
-                    <div style="display:flex; gap:5px; align-items: center;">
-                        <button class="admin-toggle-stock" data-id="${escapeHTML(p.id)}" data-stock="${isStock}" style="background-color: ${isStock ? '#e8f5e9' : '#ffebee'}; border-color: ${isStock ? '#4caf50' : '#f44336'}; color: ${isStock ? '#2e7d32' : '#c62828'};">
+                    <div class="flex-gap" style="align-items: center;">
+                        <button class="admin-toggle-stock ${isStock ? 'stock-in' : 'stock-out'}" data-id="${escapeHTML(p.id)}" data-stock="${isStock}">
                             ${isStock ? '✅ Є' : '❌ Немає'}
                         </button>
                         <button class="admin-edit-product" data-id="${escapeHTML(p.id)}" title="Редагувати товар">✏️</button>
@@ -1267,22 +1296,18 @@
                     if (prod.inStock === false) {
                         addBtn.disabled = true;
                         addBtn.textContent = 'Немає в наявності';
-                        addBtn.style.backgroundColor = '#9e9e9e';
-                        addBtn.classList.remove('add-btn', 'open-auth');
+                        addBtn.className = 'btn-flex'; // Очищаємо класи, застосовуються стандартні стилі disabled
+                        addBtn.style = '';
                     } else if (!currentUser) {
                         addBtn.disabled = false;
                         addBtn.textContent = 'Увійти для покупки';
-                        addBtn.style.backgroundColor = 'var(--borderColor)';
-                        addBtn.style.color = 'var(--textColor)';
-                        addBtn.classList.add('open-auth');
-                        addBtn.classList.remove('add-btn');
+                        addBtn.className = 'btn-flex btn-outline open-auth';
+                        addBtn.style = '';
                     } else {
                         addBtn.disabled = false;
                         addBtn.textContent = 'Додати в кошик';
-                        addBtn.style.backgroundColor = 'var(--primaryColor)';
-                        addBtn.style.color = 'white';
-                        addBtn.classList.add('add-btn');
-                        addBtn.classList.remove('open-auth');
+                        addBtn.className = 'btn-flex btn-primary add-btn';
+                        addBtn.style = '';
                     }
 
                     document.getElementById('productDetailsOverlay').classList.add('active');
