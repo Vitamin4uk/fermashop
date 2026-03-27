@@ -63,8 +63,82 @@
             top: 0;
             background-color: var(--bgColor);
             z-index: 100;
-            flex-wrap: wrap;
-            gap: 1rem;
+        }
+
+        /* Стилі для Гамбургер-меню та адаптивної шапки */
+        .hamburger-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--textColor);
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .nav-container {
+            display: flex;
+            flex-grow: 1;
+            justify-content: space-between;
+            align-items: center;
+            margin-left: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .hamburger-btn {
+                display: block;
+            }
+            .nav-container {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background-color: var(--bgColor);
+                flex-direction: column;
+                align-items: stretch;
+                padding: 1.5rem;
+                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+                border-top: 1px solid var(--borderColor);
+                z-index: 99;
+                box-sizing: border-box;
+            }
+            .nav-container.active {
+                display: flex;
+            }
+            .main-nav {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1.2rem;
+                margin-bottom: 1.5rem;
+                padding-bottom: 1.5rem;
+                border-bottom: 1px solid var(--borderColor);
+            }
+            .main-nav a {
+                padding: 0.5rem 0;
+                font-size: 1.2rem;
+                text-align: center;
+            }
+            .header-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            .header-controls button {
+                width: 100%;
+                padding: 1rem;
+                font-size: 1.1rem;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #themeToggleBtn {
+                align-self: center;
+                width: 50px;
+                height: 50px;
+                margin-bottom: 0.5rem;
+            }
         }
 
         .logo {
@@ -581,18 +655,24 @@
     <header>
         <div class="logo">Куркульське Подвір’я</div>
         
-        <nav class="main-nav">
-            <a href="#" id="navShop" class="active">Магазин</a>
-            <a href="#" id="navFarm">Наше господарство</a>
-            <a href="#" id="navDelivery">Доставка і оплата</a>
-        </nav>
+        <!-- Кнопка гамбургер-меню (видима лише на мобільних) -->
+        <button id="hamburgerBtn" class="hamburger-btn">&#9776;</button>
+        
+        <!-- Обгортка меню, яка ховатиметься на мобільних -->
+        <div id="navContainer" class="nav-container">
+            <nav class="main-nav">
+                <a href="#" id="navShop" class="active">Магазин</a>
+                <a href="#" id="navFarm">Наше господарство</a>
+                <a href="#" id="navDelivery">Доставка і оплата</a>
+            </nav>
 
-        <div class="header-controls">
-            <button id="themeToggleBtn" title="Змінити тему"></button>
-            <button id="adminBtn" style="display: none; border-color: var(--accentColor); color: var(--accentColor);">Адмін</button>
-            <button id="cabinetBtn" style="display: none;">Кабінет</button>
-            <button id="authBtn">Увійти</button>
-            <button id="cartBtn">Кошик <span id="cartCount" class="badge" style="display:none">0</span></button>
+            <div class="header-controls">
+                <button id="themeToggleBtn" title="Змінити тему"></button>
+                <button id="adminBtn" style="display: none; border-color: var(--accentColor); color: var(--accentColor);">Адмін</button>
+                <button id="cabinetBtn" style="display: none;">Кабінет</button>
+                <button id="authBtn">Увійти</button>
+                <button id="cartBtn">Кошик <span id="cartCount" class="badge" style="display:none">0</span></button>
+            </div>
         </div>
     </header>
 
@@ -1199,6 +1279,20 @@
             }
             
             if (!target || typeof target.closest !== 'function') return;
+
+            // Керування гамбургер-меню
+            if (target.closest('#hamburgerBtn')) {
+                document.getElementById('navContainer').classList.toggle('active');
+                return;
+            }
+            
+            // Автоматичне закриття мобільного меню при кліку на посилання чи кнопки
+            if (target.closest('#navContainer') && (target.tagName === 'A' || target.closest('button'))) {
+                // Не закриваємо меню, якщо клікнули на перемикач теми (щоб одразу бачити результат)
+                if (!target.closest('#themeToggleBtn')) {
+                    document.getElementById('navContainer').classList.remove('active');
+                }
+            }
 
             // Перегляд збільшеного фото у галереї
             if (target.closest('.photo-grid img')) {
