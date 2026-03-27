@@ -263,6 +263,7 @@
             border-radius: 8px;
             transition: transform 0.3s ease;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
         }
 
         .photo-grid img:hover {
@@ -310,6 +311,84 @@
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
+        }
+
+        /* Стилі для лайтбоксу фотогалереї */
+        #imageViewerOverlay {
+            z-index: 3000;
+        }
+
+        #imageViewerOverlay .modal {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: visible;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #imageViewerOverlay img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+            display: block;
+            object-fit: contain;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .viewer-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            font-size: 2.5rem;
+            padding: 15px 20px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.2s, transform 0.2s;
+            z-index: 3001;
+            user-select: none;
+        }
+
+        .viewer-nav-btn:hover { 
+            background-color: var(--primaryColor); 
+            transform: translateY(-50%) scale(1.1); 
+        }
+
+        .viewer-nav-btn.left { left: 20px; }
+        .viewer-nav-btn.right { right: 20px; }
+
+        @media (max-width: 768px) {
+            .viewer-nav-btn {
+                font-size: 1.5rem;
+                padding: 10px 15px;
+            }
+            .viewer-nav-btn.left { left: 5px; }
+            .viewer-nav-btn.right { right: 5px; }
+        }
+
+        #closeImageViewerBtn {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 2.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        #closeImageViewerBtn:hover {
+            color: var(--primaryColor);
+            border-color: transparent;
+            transform: scale(1.1);
         }
 
         .cart-item, .admin-item {
@@ -596,7 +675,7 @@
         </div>
     </div>
 
-        <!-- Модалка Адмінки -->
+    <!-- Модалка Адмінки -->
     <div id="adminOverlay" class="overlay">
         <div class="modal" style="max-width: 650px;">
             <h2>Управління фермою</h2>
@@ -648,7 +727,8 @@
             <button id="closeAdminBtn" style="width: 100%; margin-top: 1rem;">Закрити</button>
         </div>
     </div>
-        <!-- Модалка редагування товару -->
+
+    <!-- Модалка редагування товару -->
     <div id="editProductOverlay" class="overlay" style="z-index: 1010;">
         <div class="modal" style="max-width: 350px; text-align: center;">
             <h3 style="margin-top: 0;">Редагувати товар</h3>
@@ -686,6 +766,16 @@
             <p id="alertMessage" style="margin-bottom: 1.5rem; line-height: 1.5;"></p>
             <button id="closeAlertBtn" style="background-color: var(--primaryColor); color: white; width: 100%;">Зрозуміло</button>
         </div>
+    </div>
+
+    <!-- Модалка перегляду фото -->
+    <div id="imageViewerOverlay" class="overlay">
+        <button id="prevImageBtn" class="viewer-nav-btn left">&#10094;</button>
+        <div class="modal">
+            <button id="closeImageViewerBtn" title="Закрити">&times;</button>
+            <img id="viewerImage" src="" alt="Збільшене фото">
+        </div>
+        <button id="nextImageBtn" class="viewer-nav-btn right">&#10095;</button>
     </div>
 
     <!-- Контейнер для спливаючих повідомлень -->
@@ -731,8 +821,12 @@
         let currentUserProfile = null;
         let globalProducts = [];
         let shoppingCart = JSON.parse(localStorage.getItem('farmCart')) || [];
+        
+        // Змінні для галереї
+        let currentImageIndex = 0;
+        let galleryImagesList = [];
 
-        const overlays = ['cartOverlay', 'authOverlay', 'cabinetOverlay', 'adminOverlay', 'checkoutOverlay', 'editProductOverlay', 'confirmDeleteOverlay', 'alertOverlay', 'productDetailsOverlay', 'deliveryInfoOverlay'];
+        const overlays = ['cartOverlay', 'authOverlay', 'cabinetOverlay', 'adminOverlay', 'checkoutOverlay', 'editProductOverlay', 'confirmDeleteOverlay', 'alertOverlay', 'productDetailsOverlay', 'deliveryInfoOverlay', 'imageViewerOverlay'];
         const closeAllModals = () => overlays.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.remove('active');
@@ -1054,6 +1148,34 @@
             
             if (!target || typeof target.closest !== 'function') return;
 
+            // Перегляд збільшеного фото у галереї
+            if (target.closest('.photo-grid img')) {
+                const img = target.closest('.photo-grid img');
+                galleryImagesList = Array.from(document.querySelectorAll('.photo-grid img'));
+                currentImageIndex = galleryImagesList.indexOf(img);
+                
+                document.getElementById('viewerImage').src = galleryImagesList[currentImageIndex].src;
+                document.getElementById('imageViewerOverlay').classList.add('active');
+                return;
+            }
+
+            // Навігація в галереї (вліво/вправо)
+            if (target.closest('#prevImageBtn')) {
+                if (galleryImagesList.length > 0) {
+                    currentImageIndex = (currentImageIndex - 1 + galleryImagesList.length) % galleryImagesList.length;
+                    document.getElementById('viewerImage').src = galleryImagesList[currentImageIndex].src;
+                }
+                return;
+            }
+
+            if (target.closest('#nextImageBtn')) {
+                if (galleryImagesList.length > 0) {
+                    currentImageIndex = (currentImageIndex + 1) % galleryImagesList.length;
+                    document.getElementById('viewerImage').src = galleryImagesList[currentImageIndex].src;
+                }
+                return;
+            }
+
             const addBtn = target.closest('.add-btn');
             if (addBtn) {
                 const id = addBtn.dataset.id;
@@ -1282,7 +1404,7 @@
                 document.getElementById('authOverlay').classList.add('active');
             }
             
-            if (target.closest('#closeCartBtn') || target.closest('#closeAuthBtn') || target.closest('#closeCabinetBtn') || target.closest('#closeAdminBtn') || target.closest('#closeCheckoutBtn') || target.closest('#closeProductDetailsBtn') || target.closest('#closeDeliveryInfoBtn')) {
+            if (target.closest('#closeCartBtn') || target.closest('#closeAuthBtn') || target.closest('#closeCabinetBtn') || target.closest('#closeAdminBtn') || target.closest('#closeCheckoutBtn') || target.closest('#closeProductDetailsBtn') || target.closest('#closeDeliveryInfoBtn') || target.closest('#closeImageViewerBtn')) {
                 closeAllModals();
             }
 
@@ -1307,6 +1429,30 @@
             
             if (target.classList.contains('overlay')) target.classList.remove('active');
         });
+
+        // --- Управління галереєю з клавіатури та свайпами ---
+        
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('imageViewerOverlay').classList.contains('active')) {
+                if (e.key === 'ArrowLeft') document.getElementById('prevImageBtn').click();
+                if (e.key === 'ArrowRight') document.getElementById('nextImageBtn').click();
+                if (e.key === 'Escape') document.getElementById('closeImageViewerBtn').click();
+            }
+        });
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const viewerOverlay = document.getElementById('imageViewerOverlay');
+        
+        viewerOverlay.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        viewerOverlay.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) document.getElementById('nextImageBtn').click(); // Свайп вліво -> Наступне
+            if (touchEndX - touchStartX > 50) document.getElementById('prevImageBtn').click(); // Свайп вправо -> Попереднє
+        }, { passive: true });
 
         // Додавання продукту
         document.getElementById('addProductForm').addEventListener('submit', async (e) => {
